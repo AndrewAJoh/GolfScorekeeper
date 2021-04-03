@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using SQLite;
 using SQLitePCL;
 using System.IO;
+using GolfScorekeeper.lib;
 
 namespace GolfScorekeeper
 {
@@ -54,39 +55,26 @@ namespace GolfScorekeeper
         private Button roundInfoButton;
         private Button overallButton;
         private Button strokeButton;
+        private Button enhanceButton;
         private StackLayout finalLayout;
         private string courseNameText;
-        private List<string> courseList;
-        //Current number of strokes for a single hole
-        private int strokes;
-        //Current course being played (after selecting new game)
-        private string currentCourseName;
-        private Courses courses;
-        //Current hole that the player has navigated to
-        private int currentHole;
-        //Total strokes for the round
-        private int currentCourseScore;
-        //Current course score for the furthest hole the player has nagigated to minus the total par score up to that hole
-        private int currentCourseScoreRelativeToPar;
-        private int[] scoreCard;
-        //The furthest hole that the player has navigated to
-        private int furthestHole;
-        //If this is false, keep the players game data. Allow them to restart or resume if they have already begun a game (=1)
+        private List<string> courseDBList;
+        private List<Course> courseList;
+        private Round currentRound;
+        private string newCourseScorecard; //Needed for course creation
+        private int newCourseLength; //Needed for course creation
+        private string newCourseName;
         private bool midRound = false;
-        private int nineOrEighteen;
-        //Only relevant for course creation
-        private bool frontNineEnter;
-        //Only relevant for course creation
-        private string parString;
-        private Color greenColor = Color.FromRgb(10, 80, 22);
-        private Color puttingGreenColor = Color.FromRgb(84, 161, 88);
-        private Color grayColor = Color.FromRgb(70, 70, 70);
-        private Color darkGreenColor = Color.FromRgb(0, 35, 0);
-        private Color sandColor = Color.FromRgb(218, 189, 129);
-        private Color waterColor = Color.FromRgb(0, 64, 98);
+
+        private readonly Color greenColor = Color.FromRgb(10, 80, 22);
+        private readonly Color puttingGreenColor = Color.FromRgb(84, 161, 88);
+        private readonly Color grayColor = Color.FromRgb(70, 70, 70);
+        private readonly Color darkGreenColor = Color.FromRgb(0, 35, 0);
+        private readonly Color sandColor = Color.FromRgb(218, 189, 129);
+        private readonly Color waterColor = Color.FromRgb(0, 64, 98);
         public App()
         {
-            courses = new Courses();
+            courseList = new List<Course>();
 
             //Get info from database
             raw.SetProvider(new SQLite3Provider_sqlite3());
@@ -98,69 +86,76 @@ namespace GolfScorekeeper
 
             dbConnection = new SQLiteConnection(courseDatabasePath);
 
-            dbConnection.CreateTable<CurrentGame>();
-            dbConnection.CreateTable<Course>();
+            dbConnection.CreateTable<RoundDB>();
+            dbConnection.CreateTable<CourseDB>();
 
-            var courseList = dbConnection.Table<Course>();
-            var currentGameList = dbConnection.Table<CurrentGame>();
-
-            List<int> courseParList = new List<int>();
-
-            foreach (var item in courseList)
+            //Import old Course data
+            var courseDBReturn = dbConnection.Query<CourseDB>("select * from Course");
+            List<int> courseScorecard = new List<int>();
+            foreach (var courseDB in courseDBReturn)
             {
-                courseParList.Clear();
-                for (int i = 0; i < item.ParList.Length; i++)
+                courseScorecard.Clear();
+                for (int i = 0; i < courseDB.GetLength(); i++)
                 {
-                    courseParList.Add(Convert.ToInt32(item.ParList[i].ToString()));
+                    courseScorecard.Add(Convert.ToInt32(courseDB.GetHolePar(i + 1).ToString()));
                 }
 
-                int[] courseParListIntArray = courseParList.ToArray();
-                courses.AddNewCourse(item.Name, courseParListIntArray);
+                int[] courseScorecardIntArray = courseScorecard.ToArray();
+                courseList.Add(new Course(courseDB.GetCourseName(), courseScorecardIntArray));
+                CourseDB c = courseDB;
+                dbConnection.InsertOrReplace(c);
+            }
+            //remove all courses from old db
+            dbConnection.Execute("Delete * from Course");
+
+
+            //Import list of courses from the database
+            var courseDBList = dbConnection.Table<CourseDB>();
+            
+            foreach (var courseDB in courseDBList)
+            {
+                courseScorecard.Clear();
+                for (int i = 0; i < courseDB.GetLength(); i++)
+                {
+                    courseScorecard.Add(Convert.ToInt32(courseDB.GetHolePar(i+1).ToString()));
+                }
+
+                int[] courseScorecardIntArray = courseScorecard.ToArray();
+                courseList.Add(new Course(courseDB.GetCourseName(), courseScorecardIntArray));
             }
 
+            var roundDBList = dbConnection.Table<RoundDB>();
+
             var currentGame = 0;
-            foreach (var item in currentGameList)
+            foreach (var item in roundDBList)
             {
                 currentGame++;
             }
 
             if (currentGame == 1)
             {
-                foreach (var gameRecord in currentGameList)
+                foreach (var roundDB in roundDBList)        //This is fine to keep for now as we will eventually be pulling previous games in from the DB
                 {
                     midRound = true;
-                    currentCourseName = gameRecord.CourseName;
-                    currentHole = gameRecord.CurrentHole;
-                    furthestHole = gameRecord.FurthestHole;
-                    currentCourseScore = gameRecord.CurrentCourseScore;
-                    nineOrEighteen = courses.GetNineOrEighteen(currentCourseName);
-                    if (nineOrEighteen == 18)
+                    Course currentCourse = courseList.First(c => c.GetCourseName().Equals(roundDB.GetCourseName()));
+                    //Importing roundDB record into currentRound, must convert scorecard first
+                    int[] scorecard;
+                    if (currentCourse.GetLength() == 18)
                     {
-                        scoreCard = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+                        scorecard = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
                     }
                     else
                     {
-                        scoreCard = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+                        scorecard = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
                     }
-                    for (int i = 0; i < gameRecord.Scorecard.Length; i++)
+                    for (int i = 0; i < currentCourse.GetLength(); i++)
                     {
-                        scoreCard[i] = Convert.ToInt32(Convert.ToString(gameRecord.Scorecard[i]));
+                        scorecard[i] = Convert.ToInt32(Convert.ToString(roundDB.GetScore(i+1)));
                     }
-                    strokes = gameRecord.Strokes;
-
-                    if ((currentHole == furthestHole) && (scoreCard[furthestHole - 1] == 0) && (furthestHole != 1)){
-                        currentCourseScoreRelativeToPar = courses.CalculateCurrentScore(currentCourseName, furthestHole-1, currentCourseScore);
-                    }
-                    else if ((currentHole == furthestHole) && (scoreCard[furthestHole - 1] == 0) && (furthestHole == 1))
-                    {
-                        currentCourseScoreRelativeToPar = 0;
-                    }
-                    else { 
-                        currentCourseScoreRelativeToPar = courses.CalculateCurrentScore(currentCourseName, furthestHole, currentCourseScore);
-                    }
+                    currentRound = new Round(currentCourse, scorecard, roundDB.GetCurrentHole(), roundDB.GetFurthestHole(), roundDB.GetStrokes());
                 }
             }
-
+            //Home page objects
             scoreTrackerButton = new Button() { Text = "Score Tracker", BackgroundColor = greenColor };
             courseLookupButton = new Button() { Text = "Course Lookup", BackgroundColor = greenColor };
             aboutButton = new Button() { Text = "About", FontSize = 4, BackgroundColor = puttingGreenColor };
@@ -438,13 +433,19 @@ namespace GolfScorekeeper
         //Ask for course name. Happens before GoToParPrompt
         protected void GoToNamePrompt(object sender, System.EventArgs e)
         {
-            nineOrEighteen = Convert.ToInt32((sender as Button).Text);
+            //Reset 'new course' variables
+            newCourseLength = Convert.ToInt32((sender as Button).Text);
+            newCourseScorecard = "";
+            newCourseName = "";
+
             customCoursePrompt.Text = "Enter course name:";
+
             customCourseEntry.Keyboard = Keyboard.Default;
             customCourseEntry.TextColor = Color.Black;
             customCourseEntry.BackgroundColor = Color.White;
             customCourseEntry.Opacity = 10;
             customCourseEntry.MaxLength = 25;
+
             enterPageLayout.Children.Remove(customNineButton);
             enterPageLayout.Children.Remove(customEighteenButton);
             enterPageLayout.Children.Add(customCourseNextButton);
@@ -453,9 +454,9 @@ namespace GolfScorekeeper
         //Ask for course pars. Rejects if course name is invalid.
         protected void GoToParPrompt(object sender, System.EventArgs e)
         {
-            if (customCourseNextButton.Text == "Next" && (nineOrEighteen == 9 || (nineOrEighteen == 18 && frontNineEnter)))
+            if (customCourseNextButton.Text == "Next" && (newCourseLength == 9 || (newCourseLength == 18 && newCourseName.Equals("")))) //TODO: Evaluate this logic, can it be simplified?
             {
-                //Check to see that the player has entered the name of the course correctly
+                //Validate course name entered by player
                 var courseNameRegex = new Regex(@"^[a-zA-Z\s]*$");
 
                 if (!courseNameRegex.IsMatch(customCourseEntry.Text))
@@ -469,19 +470,22 @@ namespace GolfScorekeeper
                     return;
                 }
 
-                currentCourseName = customCourseEntry.Text;
+                newCourseName = customCourseEntry.Text;
+
                 customCourseEntry.Text = "";
                 customCourseEntry.Keyboard = Keyboard.Numeric;
                 customCourseEntry.MaxLength = 9;
+
                 customCoursePrompt.Text = "Enter front 9 pars in order (Example: 443545344)";
-                if (nineOrEighteen == 9)
+
+                if (newCourseLength == 9)
                 {
                     customCourseNextButton.Text = "Done";
                 }
-                frontNineEnter = false;
             }
-            else if (customCourseNextButton.Text == "Next" && (nineOrEighteen == 18 && !frontNineEnter))
+            else if (customCourseNextButton.Text == "Next" && (newCourseLength == 18 && !newCourseName.Equals("")))
             {
+                //Validate hole pars entered by player
                 string pars = customCourseEntry.Text;
                 if (pars.Length != 9)
                 {
@@ -497,14 +501,15 @@ namespace GolfScorekeeper
                     return;
                 }
 
-                parString += pars;
+                newCourseScorecard += pars;
+
                 customCourseNextButton.Text = "Done";
                 customCoursePrompt.Text = "Enter back 9 pars in order";
                 customCourseEntry.Text = "";
             }
             else if (customCourseNextButton.Text == "Done")
-            //Check to see that the player has entered the pars correctly
             {
+                //Validate hole pars entered by player
                 string pars = customCourseEntry.Text;
                 if (pars.Length != 9)
                 {
@@ -520,32 +525,32 @@ namespace GolfScorekeeper
                     return;
                 }
 
-                parString += pars;
+                newCourseScorecard += pars;
 
                 //Add course to list of courses
-                List<int> customCourseParList = new List<int>();
-                for (int i = 0; i < nineOrEighteen; i++)
+                List<int> newCourseScorecardList = new List<int>();    //Todo: eliminate this variable
+                for (int i = 0; i < newCourseLength; i++)
                 {
-                    customCourseParList.Add(Convert.ToInt32(parString[i].ToString()));
+                    newCourseScorecardList.Add(Convert.ToInt32(newCourseScorecard[i].ToString()));
                 }
 
-                int[] customCourseParListIntArray = customCourseParList.ToArray();
-                int result = courses.AddNewCourse(currentCourseName, customCourseParListIntArray);
+                int[] newCourseScorecardIntArray = newCourseScorecardList.ToArray();
 
-                Course c = new Course
-                {
-                    Name = currentCourseName,
-                    ParList = parString
-                };
+                Course course = new Course(newCourseName, newCourseScorecardIntArray);
+
+                CourseDB c = new CourseDB(course);
                 dbConnection.InsertOrReplace(c);
 
                 GenerateCourseList(false);
+
                 MainPage.Navigation.RemovePage(ep);
+
+                int result = AddCourseCheckDuplicates(course);
+                //TODO: Result is checking for overridden course name, make sure this works
                 if (result == 1)
                 {
-                    Toast.DisplayText("Course information for <br>" + currentCourseName + "<br>has been overwritten.");
+                    Toast.DisplayText("Course information for <br>" + newCourseName + "<br>has been overwritten.");
                 }
-
             }
         }
 
@@ -560,10 +565,11 @@ namespace GolfScorekeeper
             {
                 //Bring up course selection - it is a new game
                 GenerateCourseList(false); 
+                GenerateCourseList(false);
                 MainPage.Navigation.PushAsync(sp);
             }
         }
-        protected void EvaluateCustomOrStandardGame(object sender, System.EventArgs e)
+        protected void PlayCourse(object sender, System.EventArgs e)
         {
             string courseName = (sender as Button).Text;
             if (courseName == "Add Course")
@@ -572,16 +578,12 @@ namespace GolfScorekeeper
             }
             else
             {
-                nineOrEighteen = courses.GetNineOrEighteen(courseName);
                 NewGame(courseName);
             }
         }
 
         protected async void AddNewCourse()
         {
-            //initiate values
-            frontNineEnter = true;
-            parString = "";
             customCoursePrompt = new Label 
             { 
                 Text = "9 or 18 holes:",
@@ -624,33 +626,23 @@ namespace GolfScorekeeper
 
         protected async void NewGame(string courseName)
         {
-            //New game - assign values
             midRound = true;
-            strokes = 0;
-            currentHole = 1;
-            currentCourseScore = 0;
-            currentCourseScoreRelativeToPar = 0;
-            furthestHole = 1;
-            currentCourseName = courseName;
-            if (nineOrEighteen == 18)
+            Course course = courseList.First(c => c.GetCourseName().Equals(courseName));
+            int[] scorecard;
+            if (course.GetLength() == 18)
             {
-                scoreCard = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+                scorecard = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
             }
             else
             {
-                scoreCard = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+                scorecard = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
             }
 
-            roundInfoButton.Text = "H" + Convert.ToString(currentHole) + " P" + Convert.ToString(courses.GetHolePar(currentCourseName, 1));
-            if (currentCourseScoreRelativeToPar > 0)
-            {
-                overallButton.Text = "ovr: +" + Convert.ToString(currentCourseScoreRelativeToPar);
-            }
-            else 
-            {
-                overallButton.Text = "ovr: " + Convert.ToString(currentCourseScoreRelativeToPar);
-            }
-            strokeButton.Text = Convert.ToString(strokes);
+            currentRound = new Round(course, scorecard, 1, 0, 0);
+
+            roundInfoButton.Text = "H1" + " P" + Convert.ToString(course.GetHolePar(1));
+            overallButton.Text = "ovr: 0";
+            strokeButton.Text = "0";
 
             await MainPage.Navigation.PushAsync(ssp);
             MainPage.Navigation.RemovePage(sp);
@@ -658,8 +650,10 @@ namespace GolfScorekeeper
         protected async void OnResumeGameQuestionButtonClicked(object sender, System.EventArgs e)
         {
             //Keep values
-            roundInfoButton.Text = "H" + Convert.ToString(currentHole) + " P" + Convert.ToString(courses.GetHolePar(currentCourseName, currentHole));
+            int currentHole = currentRound.GetCurrentHole();
+            roundInfoButton.Text = "H" + Convert.ToString(currentHole) + " P" + Convert.ToString(currentRound.GetCourse().GetHolePar(currentHole));
 
+            int currentCourseScoreRelativeToPar = currentRound.GetCurrentCourseScoreRelativeToPar();
             if (currentCourseScoreRelativeToPar > 0)
             {
                 overallButton.Text = "ovr: +" + Convert.ToString(currentCourseScoreRelativeToPar);
@@ -668,7 +662,7 @@ namespace GolfScorekeeper
             {
                 overallButton.Text = "ovr: " + Convert.ToString(currentCourseScoreRelativeToPar);
             }
-            strokeButton.Text = Convert.ToString(strokes);
+            strokeButton.Text = Convert.ToString(currentRound.GetStrokes());
             await MainPage.Navigation.PushAsync(ssp);
             MainPage.Navigation.RemovePage(qp);
         }
@@ -681,7 +675,7 @@ namespace GolfScorekeeper
             midRound = false;
 
             //Reset CurrentGame table
-            var currentGameQueryResult = dbConnection.Query<CurrentGame>("select * from CurrentGame").FirstOrDefault();
+            var currentGameQueryResult = dbConnection.Query<RoundDB>("select * from RoundDB").FirstOrDefault(); //TODO: will need to find a way so that old users course info is not overwritten (table name change)
             if (currentGameQueryResult != null)
             {
                 dbConnection.RunInTransaction(() =>
@@ -695,8 +689,8 @@ namespace GolfScorekeeper
 
         protected void OnAddStrokeButtonClicked(object sender, System.EventArgs e)
         {
-            strokes += 1;
-            strokeButton.Text = Convert.ToString(strokes);
+            currentRound.SetStrokes(currentRound.GetStrokes() + 1);
+            strokeButton.Text = Convert.ToString(currentRound.GetStrokes());
         }
         protected void OnStrokeButtonClicked(object sender, System.EventArgs e)
         {
@@ -704,17 +698,17 @@ namespace GolfScorekeeper
         }
         protected void OnSubtractStrokeButtonClicked(object sender, System.EventArgs e)
         {
-            if (strokes == 0)
+            if (currentRound.GetStrokes() == 0)
             {
                 return;
             }
-            strokes -= 1;
-            strokeButton.Text = Convert.ToString(strokes);
+            currentRound.SetStrokes(currentRound.GetStrokes() - 1); //TODO: If this is too slow you can change the logic a bit to make it faster
+            strokeButton.Text = Convert.ToString(currentRound.GetStrokes());
         }
 
         protected void OnCourseListButtonClicked(object sender, System.EventArgs e)
         {
-            if (courses.GetCourseCount() == 0)
+            if (courseList.Count == 0)
             {
                 Toast.DisplayText("You have not added any<br> courses yet. Go to 'Score<br> Tracker' -> 'Add Course'.");
                 return;
@@ -739,8 +733,6 @@ namespace GolfScorekeeper
                 sp.Content = courseSelectionLayout;
             }
 
-            courseList = courses.GetCourseList();
-
             //Add "Add Course" button as the first option
             if (!courseLookupPage)
             {
@@ -751,16 +743,16 @@ namespace GolfScorekeeper
                     FontSize = 8
                 };
 
-                addNewCourseButton.Clicked += EvaluateCustomOrStandardGame;
+                addNewCourseButton.Clicked += PlayCourse;
                 coursesLayout.Children.Add(addNewCourseButton);
             }
 
             //Add the list of courses in the database
-            for (int i = 0; i < courseList.Count(); i++)
+            foreach(Course course in courseList)
             {
                 Button courseNameButton = new Button()
                 {
-                    Text = courseList[i],
+                    Text = course.GetCourseName(),
                     BackgroundColor = greenColor,
                     FontSize = 8
                 };
@@ -771,7 +763,7 @@ namespace GolfScorekeeper
                 }
                 else
                 {
-                    courseNameButton.Clicked += EvaluateCustomOrStandardGame;
+                    courseNameButton.Clicked += PlayCourse;
                 }
                 coursesLayout.Children.Add(courseNameButton);
             }
@@ -779,21 +771,20 @@ namespace GolfScorekeeper
 
         protected void OnNextHoleButtonClicked(object sender, System.EventArgs e)
         {
+            int currentHole = currentRound.GetCurrentHole();
+            int furthestHole = currentRound.GetFurthestHole();
+            int courseLength = currentRound.GetCourse().GetLength();
+            int strokes = currentRound.GetStrokes();
+
             if (strokes == 0)
             {
                 Toast.DisplayText("Enter a score <br>for this hole");
                 return;
             }
-            scoreCard[currentHole - 1] = strokes;
-            currentCourseScore = scoreCard.Sum();
-            currentCourseScoreRelativeToPar = courses.CalculateCurrentScore(currentCourseName, furthestHole, currentCourseScore);
+            currentRound.SetScore(currentHole, strokes); //TODO: Can this be simplified? Automatically set score based on current hole and strokes 
 
-            if (currentHole == 18 && nineOrEighteen == 18)
-            {
-                FinishRound();
-                return;
-            }
-            else if (currentHole == 9 && nineOrEighteen == 9)
+
+            if (currentHole == courseLength) 
             {
                 FinishRound();
                 return;
@@ -802,15 +793,18 @@ namespace GolfScorekeeper
             //Ensure your relative par is based on the furthest hole that you have visited in the app
             if (currentHole == furthestHole)
             {
-                furthestHole += 1;
+                currentRound.SetFurthestHole(furthestHole + 1);
             }
-            currentHole += 1;
+            currentRound.SetCurrentHole(currentHole + 1);
 
             UpdateButtonsNext();
         }
 
         protected void OnPreviousHoleButtonClicked(object sender, System.EventArgs e)
         {
+            int currentHole = currentRound.GetCurrentHole();
+            int strokes = currentRound.GetStrokes();
+
             if (currentHole == 1)
             {
                 return;
@@ -822,19 +816,17 @@ namespace GolfScorekeeper
                 return;
             }
             if (strokes != 0) {
-                scoreCard[currentHole - 1] = strokes;
-                currentCourseScore = scoreCard.Sum();
-                currentCourseScoreRelativeToPar = courses.CalculateCurrentScore(currentCourseName, furthestHole, currentCourseScore);
+                currentRound.SetScore(currentHole, strokes);
             }
-            currentHole -= 1;
-
+            currentRound.SetCurrentHole(currentHole - 1);
 
             UpdateButtonsPrevious();
         }
-
+        //Updates text on the game screen once the Next Button is pressed (Parent: OnNextHoleButtonClicked)
         protected void UpdateButtonsNext()
         {
-            string relativeCourseScoreString = "";
+            int currentCourseScoreRelativeToPar = currentRound.GetCurrentCourseScoreRelativeToPar();
+            string relativeCourseScoreString;
             if (currentCourseScoreRelativeToPar > 0)
             {
                 relativeCourseScoreString = "+" + Convert.ToString(currentCourseScoreRelativeToPar);
@@ -843,15 +835,18 @@ namespace GolfScorekeeper
             {
                 relativeCourseScoreString = Convert.ToString(currentCourseScoreRelativeToPar);
             }
-            roundInfoButton.Text = "H" + currentHole + " P" + Convert.ToString(courses.GetHolePar(currentCourseName, currentHole));
-            overallButton.Text = "ovr: " + relativeCourseScoreString;
-            strokes = scoreCard[currentHole - 1];
-            strokeButton.Text = Convert.ToString(strokes);
-        }
 
+            int currentHole = currentRound.GetCurrentHole();
+            roundInfoButton.Text = "H" + currentHole + " P" + Convert.ToString(currentRound.GetCourse().GetHolePar(currentHole));
+            overallButton.Text = "ovr: " + relativeCourseScoreString;
+            currentRound.SetStrokes(currentRound.GetScore(currentHole));
+            strokeButton.Text = Convert.ToString(currentRound.GetStrokes());
+        }
+        //Updates text on the game screen once the Prev Button is pressed (Parent: OnPreviousHoleButtonClicked)
         protected void UpdateButtonsPrevious()
         {
-            string relativeCourseScoreString = "";
+            int currentCourseScoreRelativeToPar = currentRound.GetCurrentCourseScoreRelativeToPar();
+            string relativeCourseScoreString;
             if (currentCourseScoreRelativeToPar > 0)
             {
                 relativeCourseScoreString = "+" + Convert.ToString(currentCourseScoreRelativeToPar);
@@ -860,11 +855,14 @@ namespace GolfScorekeeper
             {
                 relativeCourseScoreString = Convert.ToString(currentCourseScoreRelativeToPar);
             }
-            roundInfoButton.Text = "H" + currentHole + " P" + Convert.ToString(courses.GetHolePar(currentCourseName, currentHole));
+
+            int currentHole = currentRound.GetCurrentHole();
+            roundInfoButton.Text = "H" + currentHole + " P" + Convert.ToString(currentRound.GetCourse().GetHolePar(currentHole));
             overallButton.Text = "ovr: " + relativeCourseScoreString;
-            strokes = scoreCard[currentHole - 1];
-            strokeButton.Text = Convert.ToString(strokes);
+            currentRound.SetStrokes(currentRound.GetScore(currentHole));
+            strokeButton.Text = Convert.ToString(currentRound.GetStrokes());
         }
+
         public void FinishRound()
         {
             finalLayout = new StackLayout
@@ -882,11 +880,12 @@ namespace GolfScorekeeper
 
             finalLayout.Children.Add(new Label
             {
-                Text = currentCourseName,
+                Text = currentRound.GetCourseName(),
                 HorizontalOptions = LayoutOptions.Center,
                 HorizontalTextAlignment = TextAlignment.Center
             });
 
+            int currentCourseScoreRelativeToPar = currentRound.GetCurrentCourseScoreRelativeToPar();
             string relativeCourseScoreString;
             if (currentCourseScoreRelativeToPar > 0)
             {
@@ -949,7 +948,9 @@ namespace GolfScorekeeper
                 FontSize = 8
             }, 2, 0);
 
-            for (int i = 0; i < nineOrEighteen; i++)
+            int courseLength = currentRound.GetCourse().GetLength();
+
+            for (int i = 0; i < courseLength; i++)
             {
                 g.Children.Add(new BoxView
                 {
@@ -971,7 +972,7 @@ namespace GolfScorekeeper
 
                 g.Children.Add(new Label
                 {
-                    Text = Convert.ToString(courses.GetHolePar(currentCourseName, i + 1)),
+                    Text = Convert.ToString(currentRound.GetCourse().GetHolePar(i+1)),
                     HorizontalOptions = LayoutOptions.Center,
                     VerticalOptions = LayoutOptions.Center,
                     FontSize = 8
@@ -984,7 +985,7 @@ namespace GolfScorekeeper
 
                 g.Children.Add(new Label
                 {
-                    Text = Convert.ToString(scoreCard[i]),
+                    Text = Convert.ToString(currentRound.GetScore(i+1)),
                     HorizontalOptions = LayoutOptions.Center,
                     VerticalOptions = LayoutOptions.Center,
                     FontSize = 8
@@ -994,7 +995,7 @@ namespace GolfScorekeeper
             g.Children.Add(new BoxView
             {
                 Color = grayColor
-            }, 0, nineOrEighteen + 1);
+            }, 0, courseLength + 1);
 
             g.Children.Add(new Label
             {
@@ -1002,38 +1003,38 @@ namespace GolfScorekeeper
                 HorizontalOptions = LayoutOptions.Center,
                 VerticalOptions = LayoutOptions.Center,
                 FontSize = 8
-            }, 0, nineOrEighteen + 1);
+            }, 0, courseLength + 1);
 
             g.Children.Add(new BoxView
             {
                 Color = grayColor
-            }, 1, nineOrEighteen + 1);
+            }, 1, courseLength + 1);
 
             g.Children.Add(new Label
             {
-                Text = Convert.ToString(courses.GetCoursePar(currentCourseName)),
+                Text = Convert.ToString(currentRound.GetCourse().GetCoursePar()),
                 HorizontalOptions = LayoutOptions.Center,
                 VerticalOptions = LayoutOptions.Center,
                 FontSize = 8
-            }, 1, nineOrEighteen + 1);
+            }, 1, courseLength + 1);
 
             g.Children.Add(new BoxView
             {
                 Color = grayColor
-            }, 2, nineOrEighteen + 1);
+            }, 2, courseLength + 1);
 
             g.Children.Add(new Label
             {
-                Text = Convert.ToString(currentCourseScore),
+                Text = Convert.ToString(currentRound.GetCurrentCourseScore()),
                 HorizontalOptions = LayoutOptions.Center,
                 VerticalOptions = LayoutOptions.Center,
                 FontSize = 8
-            }, 2, nineOrEighteen + 1);
+            }, 2, courseLength + 1);
 
             g.Children.Add(new BoxView
             {
                 Color = grayColor
-            }, 0, nineOrEighteen + 2);
+            }, 0, courseLength + 2);
 
             g.Children.Add(new Label
             {
@@ -1041,12 +1042,12 @@ namespace GolfScorekeeper
                 HorizontalOptions = LayoutOptions.Center,
                 VerticalOptions = LayoutOptions.Center,
                 FontSize = 8
-            }, 0, nineOrEighteen + 2);
+            }, 0, courseLength + 2);
 
             g.Children.Add(new BoxView
             {
                 Color = grayColor
-            }, 2, nineOrEighteen + 2);
+            }, 2, courseLength + 2);
 
             g.Children.Add(new Label
             {
@@ -1054,7 +1055,7 @@ namespace GolfScorekeeper
                 HorizontalOptions = LayoutOptions.Center,
                 VerticalOptions = LayoutOptions.Center,
                 FontSize = 8
-            }, 2, nineOrEighteen + 2);
+            }, 2, courseLength + 2);
 
             finalLayout.Children.Add(g);
             finalLayout.Children.Add(new Label { });
@@ -1064,7 +1065,7 @@ namespace GolfScorekeeper
             midRound = false;
 
             //Reset all round counters
-            var currentGameQueryResult = dbConnection.Query<CurrentGame>("select * from CurrentGame").FirstOrDefault();
+            var currentGameQueryResult = dbConnection.Query<RoundDB>("select * from RoundDB").FirstOrDefault();
             if (currentGameQueryResult != null)
             {
                 dbConnection.RunInTransaction(() =>
@@ -1109,7 +1110,10 @@ namespace GolfScorekeeper
                 }
             };
 
-            for (int i = 0; i < courses.GetNineOrEighteen(courseNameText); i++)
+            Course course = courseList.First(c => c.GetCourseName().Equals(courseNameText));
+            int courseLength = course.GetLength();
+
+            for (int i = 0; i < courseLength; i++)
             {
                 g.Children.Add(new BoxView
                 {
@@ -1131,7 +1135,7 @@ namespace GolfScorekeeper
 
                 g.Children.Add(new Label
                 {
-                    Text = Convert.ToString(courses.GetHolePar(courseNameText, i + 1)),
+                    Text = Convert.ToString(course.GetHolePar(i+1)),
                     HorizontalOptions = LayoutOptions.Center,
                     VerticalOptions = LayoutOptions.Center,
                     FontSize = 5
@@ -1153,7 +1157,7 @@ namespace GolfScorekeeper
             AbsoluteLayout.SetLayoutFlags(courseName, AbsoluteLayoutFlags.PositionProportional);
             AbsoluteLayout.SetLayoutBounds(removeButton, new Rectangle(0.5, .9, 150, 60));
             AbsoluteLayout.SetLayoutFlags(removeButton, AbsoluteLayoutFlags.PositionProportional);
-            if (courses.GetNineOrEighteen(courseNameText) == 9)
+            if (courseLength == 9)
             {
                 AbsoluteLayout.SetLayoutBounds(g, new Rectangle(0.5, 0.55, 350, 100));
                 AbsoluteLayout.SetLayoutFlags(g, AbsoluteLayoutFlags.PositionProportional);
@@ -1177,8 +1181,8 @@ namespace GolfScorekeeper
 
         protected async void DisplayRemoveCourseScreen(object sender, System.EventArgs e)
         {
-            areYouSureLabel.Text = "Delete all info for " + courseNameText + "?";
-            if ((midRound == true) && (courseNameText == currentCourseName))
+            areYouSureLabel.Text = "Delete all info for " + courseNameText + "?";   //TODO: Consider not using courseNameText as a global, is there a workaround?
+            if ((midRound == true) && (courseNameText.Equals(currentRound.GetCourseName())))
             {
                 areYouReallySureLabel.Text = "You will lose all data for your current round";
             }
@@ -1190,14 +1194,17 @@ namespace GolfScorekeeper
         }
         protected void RemoveCourse(string courseName)
         {
-            courses.RemoveCourse(courseName);
+            //Remove course from database as well as global list (courseList)
+            courseList.Remove(courseList.First(c => c.GetCourseName().Equals(courseName)));
+
             GenerateCourseList(true);
+
             if (midRound)
             {
-                if (currentCourseName == courseName)
+                if (currentRound.GetCourseName().Equals(courseName))
                 { 
                     midRound = false;
-                    var currentGameQueryResult = dbConnection.Query<CurrentGame>("select * from CurrentGame").FirstOrDefault();
+                    var currentGameQueryResult = dbConnection.Query<RoundDB>("select * from RoundDB").FirstOrDefault();
                     if (currentGameQueryResult != null)
                     {
                         dbConnection.RunInTransaction(() =>
@@ -1208,7 +1215,7 @@ namespace GolfScorekeeper
                 }
             }
 
-            var courseQueryResult = dbConnection.Query<Course>("select * from Course where Name = '" + courseName + "'").FirstOrDefault();
+            var courseQueryResult = dbConnection.Query<CourseDB>("select * from CourseDB where Name = '" + courseName + "'").FirstOrDefault();
             if (courseQueryResult != null)
             {
                 dbConnection.RunInTransaction(() =>
@@ -1235,7 +1242,7 @@ namespace GolfScorekeeper
             RemoveCourse(courseNameText);
             MainPage.Navigation.RemovePage(dp);
 
-            if (courses.GetCourseCount() == 0)
+            if (courseList.Count == 0)
             {
                 MainPage.Navigation.PopAsync();
             }
@@ -1247,10 +1254,9 @@ namespace GolfScorekeeper
         }
         protected async void OnRoundInfoButtonClicked(object sender, System.EventArgs e)
         {
-
             Label courseName = new Label()
             {
-                Text = Convert.ToString(currentCourseName),
+                Text = Convert.ToString(currentRound.GetCourseName()),
                 HorizontalOptions = LayoutOptions.Center,
                 FontSize = 8
             };
@@ -1283,7 +1289,9 @@ namespace GolfScorekeeper
                 }
             };
 
-            for (int i = 0; i < nineOrEighteen; i++)
+            int courseLength = currentRound.GetCourse().GetLength();
+
+            for (int i = 0; i < courseLength; i++)
             {
                 g.Children.Add(new BoxView
                 {
@@ -1305,7 +1313,7 @@ namespace GolfScorekeeper
 
                 g.Children.Add(new Label
                 {
-                    Text = Convert.ToString(courses.GetHolePar(currentCourseName, i + 1)),
+                    Text = Convert.ToString(currentRound.GetCourse().GetHolePar(i+1)),
                     HorizontalOptions = LayoutOptions.Center,
                     VerticalOptions = LayoutOptions.Center,
                     FontSize = 5
@@ -1318,12 +1326,14 @@ namespace GolfScorekeeper
 
                 g.Children.Add(new Label
                 {
-                    Text = Convert.ToString(scoreCard[i]),
+                    Text = Convert.ToString(currentRound.GetScore(i+1)),
                     HorizontalOptions = LayoutOptions.Center,
                     VerticalOptions = LayoutOptions.Center,
                     FontSize = 5
                 }, i % 9, (3 * (i / 9)) + 2);
             }
+
+            enhanceButton = new Button() { Text = "Zoom In" };
 
             currentScoreCardLayout = new AbsoluteLayout
             {
@@ -1332,7 +1342,8 @@ namespace GolfScorekeeper
                     courseName,
                     scoreCardLabel,
                     holeParLabel,
-                    g
+                    g,
+                    enhanceButton
                 }
             };
             
@@ -1340,7 +1351,7 @@ namespace GolfScorekeeper
             AbsoluteLayout.SetLayoutFlags(courseName, AbsoluteLayoutFlags.PositionProportional);
             AbsoluteLayout.SetLayoutBounds(scoreCardLabel, new Rectangle(0.5, 0.2, 300, 60));
             AbsoluteLayout.SetLayoutFlags(scoreCardLabel, AbsoluteLayoutFlags.PositionProportional);
-            if (nineOrEighteen == 9)
+            if (courseLength == 9)
             {
                 AbsoluteLayout.SetLayoutBounds(g, new Rectangle(0.5, 0.55, 330, 140));
                 AbsoluteLayout.SetLayoutFlags(g, AbsoluteLayoutFlags.PositionProportional);
@@ -1355,9 +1366,27 @@ namespace GolfScorekeeper
                 AbsoluteLayout.SetLayoutFlags(holeParLabel, AbsoluteLayoutFlags.PositionProportional);
             }
 
+            AbsoluteLayout.SetLayoutBounds(enhanceButton, new Rectangle(0.5, 0.8, 250, 120));
+            AbsoluteLayout.SetLayoutFlags(enhanceButton, AbsoluteLayoutFlags.PositionProportional);
+
             scp.Content = currentScoreCardLayout;
             
             await MainPage.Navigation.PushAsync(scp);
+        }
+
+        public int AddCourseCheckDuplicates(Course course)  //1 returns overwritten record (name for course already exists), else 0
+        {
+            if (courseList.FirstOrDefault(c => c.GetCourseName().Equals(course.GetCourseName())) != null)
+            {
+                courseList.Remove(courseList.FirstOrDefault(c => c.GetCourseName().Equals(course.GetCourseName())));
+                courseList.Add(course);
+                return 1;
+            }
+            else
+            {
+                courseList.Add(course);
+                return 0;
+            }
         }
 
         protected override void OnStart()
@@ -1369,32 +1398,12 @@ namespace GolfScorekeeper
         {
             if (midRound)
             {
-                CurrentGame gameRecord = new CurrentGame
+                if (currentRound.GetCurrentHole() == (currentRound.GetFurthestHole() + 1)) //TODO: Do something with furthestHOle, either change it back or don't
                 {
-                    CourseName = currentCourseName,
-                    CurrentHole = currentHole,
-                    FurthestHole = furthestHole,
-                    Strokes = strokes
-                };
-
-                if (currentHole == furthestHole)
-                {
-                    scoreCard[currentHole - 1] = strokes;
+                    currentRound.SetScore(currentRound.GetCurrentHole(), currentRound.GetStrokes());
                 }
-
-                var subScoreCard = "";
-                var courseScore = 0;
-
-                for (int i = 0; i < scoreCard.Length; i++)
-                {
-                    subScoreCard += Convert.ToString(scoreCard[i]);
-                    courseScore += scoreCard[i];
-                }
-
-                gameRecord.Scorecard = subScoreCard;
-                gameRecord.Id = 1;
-                gameRecord.CurrentCourseScore = courseScore;
-
+                
+                RoundDB gameRecord = new RoundDB(currentRound);
                 dbConnection.InsertOrReplace(gameRecord);
             }
         }
