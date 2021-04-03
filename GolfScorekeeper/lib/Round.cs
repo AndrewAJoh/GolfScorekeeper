@@ -5,12 +5,12 @@ namespace GolfScorekeeper.lib
 {
     public class Round
     {
-        private Course Course;
+        private GolfCourse Course;
         private int[] Scorecard;
         private int CurrentHole;    //Current hole you have navigated to [range 1->[furthesthole + 1]]
         private int FurthestHole;   //Furthest hole you have completed
         private int Strokes;
-        public Round(Course course)
+        public Round(GolfCourse course)
         {
             Course = course;
             if (Course.GetLength() == 9)
@@ -26,7 +26,7 @@ namespace GolfScorekeeper.lib
             Strokes = 0;
         }
 
-        public Round(Course course, int[] scorecard, int currentHole, int furthestHole, int strokes)
+        public Round(GolfCourse course, int[] scorecard, int currentHole, int furthestHole, int strokes)
         {
             Course = course;
             Scorecard = scorecard;
@@ -41,7 +41,7 @@ namespace GolfScorekeeper.lib
         public int GetCurrentHole() { return CurrentHole; }
         public int GetFurthestHole() { return FurthestHole; }
         public int GetCurrentCourseScore() { return Scorecard.Sum(); }
-        public Course GetCourse() { return Course; }
+        public GolfCourse GetCourse() { return Course; }
         public int GetCurrentCourseScoreRelativeToPar()
         {
             if (FurthestHole == 0)

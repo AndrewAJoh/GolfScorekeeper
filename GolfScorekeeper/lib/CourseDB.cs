@@ -1,14 +1,15 @@
 ﻿using SQLite;
+using System;
 
 namespace GolfScorekeeper.lib
 {
-    class CourseDB
+    public class CourseDB
     {
         [PrimaryKey]
-        private string Name { get; set; }
-        private string Scorecard { get; set; }
+        public string Name { get; set; }
+        public string Scorecard { get; set; }
         public CourseDB() { }
-        public CourseDB(Course course)
+        public CourseDB(GolfCourse course)
         {
             Name = course.GetCourseName();
 
@@ -25,6 +26,6 @@ namespace GolfScorekeeper.lib
         public string GetCourseName() { return Name; }
         public string GetScorecard() { return Scorecard; }
         public int GetLength() { return Scorecard.Length; }
-        public int GetHolePar(int holeNumber) { return Scorecard[holeNumber - 1]; } //1 is hole 1
+        public int GetHolePar(int holeNumber) { return Convert.ToInt32(Scorecard[holeNumber - 1].ToString()); } //1 is hole 1
     }
 }

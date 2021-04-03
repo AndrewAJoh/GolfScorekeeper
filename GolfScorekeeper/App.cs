@@ -59,7 +59,7 @@ namespace GolfScorekeeper
         private StackLayout finalLayout;
         private string courseNameText;
         private List<string> courseDBList;
-        private List<Course> courseList;
+        private List<GolfCourse> courseList;
         private Round currentRound;
         private string newCourseScorecard; //Needed for course creation
         private int newCourseLength; //Needed for course creation
@@ -74,7 +74,7 @@ namespace GolfScorekeeper
         private readonly Color waterColor = Color.FromRgb(0, 64, 98);
         public App()
         {
-            courseList = new List<Course>();
+            courseList = new List<GolfCourse>();
 
             //Get info from database
             raw.SetProvider(new SQLite3Provider_sqlite3());
@@ -87,28 +87,35 @@ namespace GolfScorekeeper
             dbConnection = new SQLiteConnection(courseDatabasePath);
 
             dbConnection.CreateTable<RoundDB>();
+            dbConnection.CreateTable<Course>();
             dbConnection.CreateTable<CourseDB>();
 
             //Import old Course data
-            var courseDBReturn = dbConnection.Query<CourseDB>("select * from Course");
+            var courseDBReturn = dbConnection.Query<Course>("select * from Course");
             List<int> courseScorecard = new List<int>();
+
+            var oldCoursesCount = 0;
+            foreach (var item in courseDBReturn)
+            {
+                oldCoursesCount++;
+            }
+
             foreach (var courseDB in courseDBReturn)
             {
                 courseScorecard.Clear();
-                for (int i = 0; i < courseDB.GetLength(); i++)
+                for (int i = 0; i < courseDB.ParList.Length; i++)
                 {
-                    courseScorecard.Add(Convert.ToInt32(courseDB.GetHolePar(i + 1).ToString()));
+                    courseScorecard.Add(Convert.ToInt32(courseDB.ParList[i].ToString()));
                 }
 
                 int[] courseScorecardIntArray = courseScorecard.ToArray();
-                courseList.Add(new Course(courseDB.GetCourseName(), courseScorecardIntArray));
-                CourseDB c = courseDB;
+                courseList.Add(new GolfCourse(courseDB.Name, courseScorecardIntArray));
+                CourseDB c = new CourseDB();
+                c.Scorecard = courseDB.ParList;
+                c.Name = courseDB.Name;
                 dbConnection.InsertOrReplace(c);
+                dbConnection.DropTable<Course>();
             }
-            //remove all courses from old db
-            dbConnection.Execute("Delete * from Course");
-
-
             //Import list of courses from the database
             var courseDBList = dbConnection.Table<CourseDB>();
             
@@ -117,11 +124,11 @@ namespace GolfScorekeeper
                 courseScorecard.Clear();
                 for (int i = 0; i < courseDB.GetLength(); i++)
                 {
-                    courseScorecard.Add(Convert.ToInt32(courseDB.GetHolePar(i+1).ToString()));
+                    courseScorecard.Add(courseDB.GetHolePar(i+1));
                 }
 
                 int[] courseScorecardIntArray = courseScorecard.ToArray();
-                courseList.Add(new Course(courseDB.GetCourseName(), courseScorecardIntArray));
+                courseList.Add(new GolfCourse(courseDB.GetCourseName(), courseScorecardIntArray));
             }
 
             var roundDBList = dbConnection.Table<RoundDB>();
@@ -137,7 +144,7 @@ namespace GolfScorekeeper
                 foreach (var roundDB in roundDBList)        //This is fine to keep for now as we will eventually be pulling previous games in from the DB
                 {
                     midRound = true;
-                    Course currentCourse = courseList.First(c => c.GetCourseName().Equals(roundDB.GetCourseName()));
+                    GolfCourse currentCourse = courseList.First(c => c.GetCourseName().Equals(roundDB.GetCourseName()));
                     //Importing roundDB record into currentRound, must convert scorecard first
                     int[] scorecard;
                     if (currentCourse.GetLength() == 18)
@@ -150,7 +157,7 @@ namespace GolfScorekeeper
                     }
                     for (int i = 0; i < currentCourse.GetLength(); i++)
                     {
-                        scorecard[i] = Convert.ToInt32(Convert.ToString(roundDB.GetScore(i+1)));
+                        scorecard[i] = roundDB.GetScore(i+1);
                     }
                     currentRound = new Round(currentCourse, scorecard, roundDB.GetCurrentHole(), roundDB.GetFurthestHole(), roundDB.GetStrokes());
                 }
@@ -536,14 +543,10 @@ namespace GolfScorekeeper
 
                 int[] newCourseScorecardIntArray = newCourseScorecardList.ToArray();
 
-                Course course = new Course(newCourseName, newCourseScorecardIntArray);
+                GolfCourse course = new GolfCourse(newCourseName, newCourseScorecardIntArray);
 
                 CourseDB c = new CourseDB(course);
                 dbConnection.InsertOrReplace(c);
-
-                GenerateCourseList(false);
-
-                MainPage.Navigation.RemovePage(ep);
 
                 int result = AddCourseCheckDuplicates(course);
                 //TODO: Result is checking for overridden course name, make sure this works
@@ -551,6 +554,10 @@ namespace GolfScorekeeper
                 {
                     Toast.DisplayText("Course information for <br>" + newCourseName + "<br>has been overwritten.");
                 }
+
+                GenerateCourseList(false);
+
+                MainPage.Navigation.RemovePage(ep);
             }
         }
 
@@ -564,7 +571,6 @@ namespace GolfScorekeeper
             else
             {
                 //Bring up course selection - it is a new game
-                GenerateCourseList(false); 
                 GenerateCourseList(false);
                 MainPage.Navigation.PushAsync(sp);
             }
@@ -627,7 +633,7 @@ namespace GolfScorekeeper
         protected async void NewGame(string courseName)
         {
             midRound = true;
-            Course course = courseList.First(c => c.GetCourseName().Equals(courseName));
+            GolfCourse course = courseList.First(c => c.GetCourseName().Equals(courseName));
             int[] scorecard;
             if (course.GetLength() == 18)
             {
@@ -748,7 +754,7 @@ namespace GolfScorekeeper
             }
 
             //Add the list of courses in the database
-            foreach(Course course in courseList)
+            foreach(GolfCourse course in courseList)
             {
                 Button courseNameButton = new Button()
                 {
@@ -786,12 +792,14 @@ namespace GolfScorekeeper
 
             if (currentHole == courseLength) 
             {
+                //Increment FurthestHole so that the relative calculation contains all scores
+                currentRound.SetFurthestHole(furthestHole + 1); //Furthest hole will now be 18 or 9
                 FinishRound();
                 return;
             }
-
+             
             //Ensure your relative par is based on the furthest hole that you have visited in the app
-            if (currentHole == furthestHole)
+            if (currentHole == furthestHole + 1)
             {
                 currentRound.SetFurthestHole(furthestHole + 1);
             }
@@ -803,6 +811,7 @@ namespace GolfScorekeeper
         protected void OnPreviousHoleButtonClicked(object sender, System.EventArgs e)
         {
             int currentHole = currentRound.GetCurrentHole();
+            int furthestHole = currentRound.GetFurthestHole();
             int strokes = currentRound.GetStrokes();
 
             if (currentHole == 1)
@@ -815,9 +824,17 @@ namespace GolfScorekeeper
                 Toast.DisplayText("Enter a score before <br>returning to previous holes");
                 return;
             }
-            if (strokes != 0) {
+            else
+            {
                 currentRound.SetScore(currentHole, strokes);
             }
+
+            //Fix scenario where score is not calculated correctly when player first clicks previous button
+            if (currentHole == furthestHole + 1)
+            {
+                currentRound.SetFurthestHole(currentRound.GetFurthestHole() + 1);
+            }
+
             currentRound.SetCurrentHole(currentHole - 1);
 
             UpdateButtonsPrevious();
@@ -1110,7 +1127,7 @@ namespace GolfScorekeeper
                 }
             };
 
-            Course course = courseList.First(c => c.GetCourseName().Equals(courseNameText));
+            GolfCourse course = courseList.First(c => c.GetCourseName().Equals(courseNameText));
             int courseLength = course.GetLength();
 
             for (int i = 0; i < courseLength; i++)
@@ -1374,7 +1391,7 @@ namespace GolfScorekeeper
             await MainPage.Navigation.PushAsync(scp);
         }
 
-        public int AddCourseCheckDuplicates(Course course)  //1 returns overwritten record (name for course already exists), else 0
+        public int AddCourseCheckDuplicates(GolfCourse course)  //1 returns overwritten record (name for course already exists), else 0
         {
             if (courseList.FirstOrDefault(c => c.GetCourseName().Equals(course.GetCourseName())) != null)
             {
@@ -1398,7 +1415,7 @@ namespace GolfScorekeeper
         {
             if (midRound)
             {
-                if (currentRound.GetCurrentHole() == (currentRound.GetFurthestHole() + 1)) //TODO: Do something with furthestHOle, either change it back or don't
+                if (currentRound.GetCurrentHole() == (currentRound.GetFurthestHole() + 1))
                 {
                     currentRound.SetScore(currentRound.GetCurrentHole(), currentRound.GetStrokes());
                 }
