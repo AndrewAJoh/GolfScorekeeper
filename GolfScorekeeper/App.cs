@@ -88,17 +88,11 @@ namespace GolfScorekeeper
 
             dbConnection.CreateTable<RoundDB>();
             dbConnection.CreateTable<Course>();
-            dbConnection.CreateTable<CourseDB>();
+            dbConnection.CreateTable<GolfCourseDB>();
 
             //Import old Course data
             var courseDBReturn = dbConnection.Query<Course>("select * from Course");
             List<int> courseScorecard = new List<int>();
-
-            var oldCoursesCount = 0;
-            foreach (var item in courseDBReturn)
-            {
-                oldCoursesCount++;
-            }
 
             foreach (var courseDB in courseDBReturn)
             {
@@ -109,15 +103,14 @@ namespace GolfScorekeeper
                 }
 
                 int[] courseScorecardIntArray = courseScorecard.ToArray();
-                courseList.Add(new GolfCourse(courseDB.Name, courseScorecardIntArray));
-                CourseDB c = new CourseDB();
+                GolfCourseDB c = new GolfCourseDB();
                 c.Scorecard = courseDB.ParList;
                 c.Name = courseDB.Name;
                 dbConnection.InsertOrReplace(c);
                 dbConnection.DropTable<Course>();
             }
             //Import list of courses from the database
-            var courseDBList = dbConnection.Table<CourseDB>();
+            var courseDBList = dbConnection.Table<GolfCourseDB>();
             
             foreach (var courseDB in courseDBList)
             {
@@ -545,7 +538,7 @@ namespace GolfScorekeeper
 
                 GolfCourse course = new GolfCourse(newCourseName, newCourseScorecardIntArray);
 
-                CourseDB c = new CourseDB(course);
+                GolfCourseDB c = new GolfCourseDB(course);
                 dbConnection.InsertOrReplace(c);
 
                 int result = AddCourseCheckDuplicates(course);
@@ -1232,7 +1225,7 @@ namespace GolfScorekeeper
                 }
             }
 
-            var courseQueryResult = dbConnection.Query<CourseDB>("select * from CourseDB where Name = '" + courseName + "'").FirstOrDefault();
+            var courseQueryResult = dbConnection.Query<GolfCourseDB>("select * from GolfCourseDB where Name = '" + courseName + "'").FirstOrDefault();
             if (courseQueryResult != null)
             {
                 dbConnection.RunInTransaction(() =>

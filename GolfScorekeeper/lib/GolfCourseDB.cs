@@ -3,13 +3,13 @@ using System;
 
 namespace GolfScorekeeper.lib
 {
-    public class CourseDB
+    public class GolfCourseDB
     {
         [PrimaryKey]
         public string Name { get; set; }
         public string Scorecard { get; set; }
-        public CourseDB() { }
-        public CourseDB(GolfCourse course)
+        public GolfCourseDB() { }
+        public GolfCourseDB(GolfCourse course)
         {
             Name = course.GetCourseName();
 
