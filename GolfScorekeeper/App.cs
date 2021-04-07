@@ -58,13 +58,13 @@ namespace GolfScorekeeper
         private Button enhanceButton;
         private StackLayout finalLayout;
         private string courseNameText;
-        private List<string> courseDBList;
         private List<GolfCourse> courseList;
         private Round currentRound;
         private string newCourseScorecard; //Needed for course creation
         private int newCourseLength; //Needed for course creation
         private string newCourseName;
         private bool midRound = false;
+        private bool isEnhanced = false;
 
         private readonly Color greenColor = Color.FromRgb(10, 80, 22);
         private readonly Color puttingGreenColor = Color.FromRgb(84, 161, 88);
@@ -345,11 +345,6 @@ namespace GolfScorekeeper
                 }
             };
 
-            finalScreenLayout = new CircleScrollView
-            {
-                Content = finalLayout
-            };
-
             //MainPage
             mp = new CirclePage() {
                 Content = homePageLayout,
@@ -405,6 +400,11 @@ namespace GolfScorekeeper
             {
                 Content = deleteCourseLayout,
                 BackgroundColor = darkGreenColor
+            };
+
+            finalScreenLayout = new CircleScrollView
+            {
+                Content = finalLayout
             };
 
             //FinalPage (results screen)
@@ -688,6 +688,10 @@ namespace GolfScorekeeper
 
         protected void OnAddStrokeButtonClicked(object sender, System.EventArgs e)
         {
+            if (currentRound.GetStrokes() >= 20)
+            {
+                return;
+            }
             currentRound.SetStrokes(currentRound.GetStrokes() + 1);
             strokeButton.Text = Convert.ToString(currentRound.GetStrokes());
         }
@@ -1344,6 +1348,7 @@ namespace GolfScorekeeper
             }
 
             enhanceButton = new Button() { Text = "Zoom In" };
+            enhanceButton.Clicked += OnEnhanceButtonClicked;
 
             currentScoreCardLayout = new AbsoluteLayout
             {
@@ -1376,12 +1381,163 @@ namespace GolfScorekeeper
                 AbsoluteLayout.SetLayoutFlags(holeParLabel, AbsoluteLayoutFlags.PositionProportional);
             }
 
-            AbsoluteLayout.SetLayoutBounds(enhanceButton, new Rectangle(0.5, 0.8, 250, 120));
+            AbsoluteLayout.SetLayoutBounds(enhanceButton, new Rectangle(0.5, 0.9, 150, 60));
             AbsoluteLayout.SetLayoutFlags(enhanceButton, AbsoluteLayoutFlags.PositionProportional);
 
             scp.Content = currentScoreCardLayout;
             
             await MainPage.Navigation.PushAsync(scp);
+        }
+
+        protected void OnEnhanceButtonClicked(object sender, System.EventArgs e)
+        {
+            StackLayout scoreCardEnhancedLayout = new StackLayout
+            {
+                Orientation = StackOrientation.Horizontal,
+                VerticalOptions = LayoutOptions.Center,
+                Spacing = 10
+            };
+
+            //left padding
+            scoreCardEnhancedLayout.Children.Add(new Label
+            {
+                Text = "",
+                Margin = 15
+            });
+
+            Grid g;
+
+            g = new Grid
+            {
+                RowDefinitions =
+                    {
+                        new RowDefinition{ Height = 50 },
+                        new RowDefinition{ Height = 50 },
+                        new RowDefinition{ Height = 50 }
+                    },
+                ColumnDefinitions =
+                    {
+                        new ColumnDefinition{Width = 100},
+                    }
+            };
+
+            g.Children.Add(new BoxView
+            {
+                Color = darkGreenColor
+            }, 0, 0);
+
+            g.Children.Add(new Label
+            {
+                Text = "Hole",
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center,
+                FontSize = 10
+            }, 0, 0);
+
+            g.Children.Add(new BoxView
+            {
+                Color = darkGreenColor
+            }, 0, 1);
+
+            g.Children.Add(new Label
+            {
+                Text = "Par",
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center,
+                FontSize = 10
+            }, 0, 1);
+
+            g.Children.Add(new BoxView
+            {
+                Color = darkGreenColor
+            }, 0, 2);
+
+            g.Children.Add(new Label
+            {
+                Text = "Score",
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center,
+                FontSize = 10
+            }, 0, 2);
+
+            scoreCardEnhancedLayout.Children.Add(g);
+
+            for (int i = 0; i < currentRound.GetCourse().GetLength(); i++)
+            {
+                g = new Grid
+                {
+                    RowDefinitions =
+                    {
+                        new RowDefinition{ Height = 50 },
+                        new RowDefinition{ Height = 50 },
+                        new RowDefinition{ Height = 50 }
+                    },
+                    ColumnDefinitions =
+                    {
+                        new ColumnDefinition{Width = 100},
+                    }
+                };
+
+
+                g.Children.Add(new BoxView
+                {
+                    Color = darkGreenColor
+                }, 0, 0);
+
+                g.Children.Add(new Label
+                {
+                    Text = Convert.ToString(i + 1),
+                    HorizontalOptions = LayoutOptions.Center,
+                    VerticalOptions = LayoutOptions.Center,
+                    FontSize = 15
+                }, 0, 0);
+
+                g.Children.Add(new BoxView
+                {
+                    Color = puttingGreenColor
+                }, 0, 1);
+
+                g.Children.Add(new Label
+                {
+                    Text = Convert.ToString(currentRound.GetCourse().GetHolePar(i + 1)),
+                    HorizontalOptions = LayoutOptions.Center,
+                    VerticalOptions = LayoutOptions.Center,
+                    FontSize = 15
+                }, 0, 1);
+
+                g.Children.Add(new BoxView
+                {
+                    Color = grayColor
+                }, 0, 2);
+
+                g.Children.Add(new Label
+                {
+                    Text = Convert.ToString(currentRound.GetScore(i + 1)),
+                    HorizontalOptions = LayoutOptions.Center,
+                    VerticalOptions = LayoutOptions.Center,
+                    FontSize = 15
+                }, 0, 2);
+
+                scoreCardEnhancedLayout.Children.Add(g);
+
+            }
+
+            //right padding
+            scoreCardEnhancedLayout.Children.Add(new Label
+            {
+                Text = "",
+                Margin = 30
+            });
+
+            CircleScrollView enhancedScreenLayout = new CircleScrollView
+            {
+                Content = scoreCardEnhancedLayout
+                ,Orientation = ScrollOrientation.Horizontal
+                ,VerticalOptions = LayoutOptions.Center
+            };
+
+            scp.Content = enhancedScreenLayout;
+
         }
 
         public int AddCourseCheckDuplicates(GolfCourse course)  //1 returns overwritten record (name for course already exists), else 0
