@@ -89,6 +89,7 @@ namespace GolfScorekeeper
             dbConnection.CreateTable<RoundDB>();
             dbConnection.CreateTable<Course>();
             dbConnection.CreateTable<GolfCourseDB>();
+            dbConnection.CreateTable<ScoreDB>();
 
             //Import old Course data
             var courseDBReturn = dbConnection.Query<Course>("select * from Course");
@@ -899,6 +900,13 @@ namespace GolfScorekeeper
                 HorizontalTextAlignment = TextAlignment.Center
             });
 
+            finalLayout.Children.Add(new Label
+            {
+                Text = DateTime.Now.ToString("MM/dd"),
+                HorizontalOptions = LayoutOptions.Center,
+                HorizontalTextAlignment = TextAlignment.Center
+            });
+
             int currentCourseScoreRelativeToPar = currentRound.GetCurrentCourseScoreRelativeToPar();
             string relativeCourseScoreString;
             if (currentCourseScoreRelativeToPar > 0)
@@ -1087,6 +1095,10 @@ namespace GolfScorekeeper
                     dbConnection.Delete(currentGameQueryResult);
                 });
             }
+
+            //Add round record to ScoreDB
+            ScoreDB roundScore = new ScoreDB(DateTime.Now, currentRound.GetCourseName(), currentRound.GetCurrentCourseScore());
+            dbConnection.Insert(roundScore);
 
         }
 
