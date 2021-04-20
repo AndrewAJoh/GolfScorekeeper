@@ -549,7 +549,7 @@ namespace GolfScorekeeper
                     Toast.DisplayText("Course information for <br>" + newCourseName + "<br>has been overwritten.");
                 }
 
-                GenerateCourseList(false);
+                GenerateCourseList(true);
 
                 MainPage.Navigation.RemovePage(ep);
             }
@@ -557,11 +557,18 @@ namespace GolfScorekeeper
 
         protected void DetermineNewOrResumeGame(object sender, System.EventArgs e)
         {
+            if (courseList.Count == 0)
+            {
+                Toast.DisplayText("You have not added any<br> courses yet. Go to<br>'Course Lookup' -> <br>'Add Course'.");
+                return;
+            }
+
             if (midRound)
             {
                 //Ask player whether they want to resume or start new
                 MainPage.Navigation.PushAsync(qp);
             }
+
             else
             {
                 //Bring up course selection - it is a new game
@@ -712,14 +719,8 @@ namespace GolfScorekeeper
 
         protected void OnCourseListButtonClicked(object sender, System.EventArgs e)
         {
-            if (courseList.Count == 0)
-            {
-                Toast.DisplayText("You have not added any<br> courses yet. Go to 'Score<br> Tracker' -> 'Add Course'.");
-                return;
-            }
             GenerateCourseList(true);
             MainPage.Navigation.PushAsync(clp);
-
         }
 
         protected void GenerateCourseList(bool courseLookupPage)
@@ -738,7 +739,7 @@ namespace GolfScorekeeper
             }
 
             //Add "Add Course" button as the first option
-            if (!courseLookupPage)
+            if (courseLookupPage)
             {
                 Button addNewCourseButton = new Button
                 {
@@ -1267,11 +1268,6 @@ namespace GolfScorekeeper
         {
             RemoveCourse(courseNameText);
             MainPage.Navigation.RemovePage(dp);
-
-            if (courseList.Count == 0)
-            {
-                MainPage.Navigation.PopAsync();
-            }
         }
 
         protected void OnNoDeleteButtonClicked(object sender, System.EventArgs e)
