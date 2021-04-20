@@ -40,6 +40,7 @@ namespace GolfScorekeeper
         private CirclePage ssp;
         private CirclePage fp;
         private CirclePage qp;
+        private CirclePage qqp;
         private CirclePage ep;
         private CirclePage clp;
         private CirclePage cdp;
@@ -181,11 +182,14 @@ namespace GolfScorekeeper
             Button previousHoleButton = new Button() { Text = "Prev\nHole", FontSize = Device.GetNamedSize(NamedSize.Small, typeof(Label)), BackgroundColor = sandColor, TextColor = Color.Black };
             Button resumeGameQuestionButton = new Button() { Text = "Resume Game", BackgroundColor = greenColor };
             Button newGameQuestionButton = new Button() { Text = "New Round", BackgroundColor = Color.DarkRed };
+            Label messageLabel = new Label() { Text = "All current round\ndata will be lost.\nAre you sure?" };
+            Button yesConfirmButton = new Button() { Text = "Yes"};
+            Button noConfirmButton = new Button() { Text = "No"};
 
             areYouSureLabel = new Label() { };
             areYouReallySureLabel = new Label() { FontSize = 8 };
-            Button yesButton = new Button() { Text = "Yes", BackgroundColor = greenColor };
-            Button noButton = new Button() { Text = "No", BackgroundColor = Color.DarkRed };
+            Button yesButton = new Button() { Text = "Yes"};
+            Button noButton = new Button() { Text = "No"};
 
 
             addStrokeButton.Clicked += OnAddStrokeButtonClicked;
@@ -217,14 +221,17 @@ namespace GolfScorekeeper
             AbsoluteLayout.SetLayoutBounds(areYouReallySureLabel, new Rectangle(0.5, .50, 250, 80));
             AbsoluteLayout.SetLayoutFlags(areYouReallySureLabel, AbsoluteLayoutFlags.PositionProportional);
 
-            AbsoluteLayout.SetLayoutBounds(yesButton, new Rectangle(0.3, .75, 100, 60));
+            AbsoluteLayout.SetLayoutBounds(yesButton, new Rectangle(0.2, .7, 100, 60));
             AbsoluteLayout.SetLayoutFlags(yesButton, AbsoluteLayoutFlags.PositionProportional);
 
-            AbsoluteLayout.SetLayoutBounds(noButton, new Rectangle(0.7, .75, 100, 60));
+            AbsoluteLayout.SetLayoutBounds(noButton, new Rectangle(0.8, .7, 100, 60));
             AbsoluteLayout.SetLayoutFlags(noButton, AbsoluteLayoutFlags.PositionProportional);
 
             yesButton.Clicked += OnYesDeleteButtonClicked;
             noButton.Clicked += OnNoDeleteButtonClicked;
+            
+            yesConfirmButton.Clicked += OnYesConfirmButtonClicked;
+            noConfirmButton.Clicked += OnNoConfirmButtonClicked;
 
             AbsoluteLayout questionCircleStackLayout = new AbsoluteLayout
             {
@@ -235,11 +242,30 @@ namespace GolfScorekeeper
                 }
             };
 
+            AbsoluteLayout questionConfirmCircleStackLayout = new AbsoluteLayout
+            {
+                Children =
+                {
+                    messageLabel,
+                    yesConfirmButton,
+                    noConfirmButton
+                }
+            };
+
             AbsoluteLayout.SetLayoutBounds(resumeGameQuestionButton, new Rectangle(0.5, .25, 250, 80));
             AbsoluteLayout.SetLayoutFlags(resumeGameQuestionButton, AbsoluteLayoutFlags.PositionProportional);
 
             AbsoluteLayout.SetLayoutBounds(newGameQuestionButton, new Rectangle(0.5, .75, 250, 80));
             AbsoluteLayout.SetLayoutFlags(newGameQuestionButton, AbsoluteLayoutFlags.PositionProportional);
+
+            AbsoluteLayout.SetLayoutBounds(messageLabel, new Rectangle(0.5, .35, 225, 200));
+            AbsoluteLayout.SetLayoutFlags(messageLabel, AbsoluteLayoutFlags.PositionProportional);
+
+            AbsoluteLayout.SetLayoutBounds(yesConfirmButton, new Rectangle(0.2, .7, 100, 60));
+            AbsoluteLayout.SetLayoutFlags(yesConfirmButton, AbsoluteLayoutFlags.PositionProportional);
+
+            AbsoluteLayout.SetLayoutBounds(noConfirmButton, new Rectangle(0.8, .7, 100, 60));
+            AbsoluteLayout.SetLayoutFlags(noConfirmButton, AbsoluteLayoutFlags.PositionProportional);
 
             AbsoluteLayout.SetLayoutBounds(roundInfoButton, new Rectangle(0.5, 0, 155, 50));
             AbsoluteLayout.SetLayoutFlags(roundInfoButton, AbsoluteLayoutFlags.PositionProportional);
@@ -332,6 +358,11 @@ namespace GolfScorekeeper
                 Content = questionCircleStackLayout
             };
 
+            CircleScrollView questionConfirmLayout = new CircleScrollView
+            {
+                Content = questionConfirmCircleStackLayout
+            };
+
             AbsoluteLayout parTrackerLayout = new AbsoluteLayout()
             {
                 Children =
@@ -369,6 +400,12 @@ namespace GolfScorekeeper
             qp = new CirclePage()
             {
                 Content = questionLayout,
+                BackgroundColor = darkGreenColor
+            };
+
+            qqp = new CirclePage()
+            {
+                Content = questionConfirmLayout,
                 BackgroundColor = darkGreenColor
             };
 
@@ -420,6 +457,7 @@ namespace GolfScorekeeper
             NavigationPage.SetHasNavigationBar(sp, false);
             NavigationPage.SetHasNavigationBar(ssp, false);
             NavigationPage.SetHasNavigationBar(qp, false);
+            NavigationPage.SetHasNavigationBar(qqp, false);
             NavigationPage.SetHasNavigationBar(ep, false);
             NavigationPage.SetHasNavigationBar(fp, false);
             NavigationPage.SetHasNavigationBar(clp, false);
@@ -674,11 +712,12 @@ namespace GolfScorekeeper
             MainPage.Navigation.RemovePage(qp);
         }
 
-        protected void OnNewGameQuestionButtonClicked(object sender, System.EventArgs e)
+        protected void OnYesConfirmButtonClicked(object sender, System.EventArgs e)
         {
             //Bug fix where new custom course wouldn't show up if mid-round for that course the first time
             GenerateCourseList(false);
             MainPage.Navigation.PushAsync(sp);
+            MainPage.Navigation.RemovePage(qqp);
             midRound = false;
 
             //Reset CurrentGame table
@@ -1273,6 +1312,16 @@ namespace GolfScorekeeper
         protected void OnNoDeleteButtonClicked(object sender, System.EventArgs e)
         {
             MainPage.Navigation.RemovePage(dp);
+        }
+
+        protected void OnNewGameQuestionButtonClicked(object sender, System.EventArgs e)
+        {
+            MainPage.Navigation.PushAsync(qqp);
+        }
+
+        protected void OnNoConfirmButtonClicked(object sender, System.EventArgs e)
+        {
+            MainPage.Navigation.RemovePage(qqp);
         }
         protected async void OnRoundInfoButtonClicked(object sender, System.EventArgs e)
         {
