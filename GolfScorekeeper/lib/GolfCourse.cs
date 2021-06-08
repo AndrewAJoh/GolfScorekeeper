@@ -22,16 +22,20 @@
             }
             return par;
         }
-        //What score (+/-) do you have on this course after X holes?
-        public int CalculateCurrentScore(int holeNumber, int currentScore) //1 is hole 1
+        //Plus or minus score for all non-zero holes so far
+        public int CalculateCurrentScoreRelativeToPar(int[] scorecard) //1 is hole 1
         {
-            int totalPar = 0;
-            for (int i = 1; i <= holeNumber; i++)
+            int score = 0;
+
+            for (int i = 1; i <= Scorecard.Length; i++)
             {
-                totalPar += GetHolePar(i);
+                if (scorecard[i - 1] != 0)  //Player has not entered a score yet for this hole
+                {
+                    score += (scorecard[i - 1] - GetHolePar(i));
+                }
             }
 
-            return currentScore - totalPar;
+            return score;
         }
     }
 }

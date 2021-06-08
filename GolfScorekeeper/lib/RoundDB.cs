@@ -28,14 +28,13 @@ namespace GolfScorekeeper.lib
 
             Scorecard = scorecard;
             CurrentHole = round.GetCurrentHole();
-            FurthestHole = round.GetFurthestHole();
+            FurthestHole = 0;
             Strokes = round.GetStrokes();
         }
         public string GetCourseName() { return CourseName; }
         public string GetScorecard() { return Scorecard; }
         public int GetScore(int hole) { return Convert.ToInt32(Scorecard[hole - 1].ToString()); } //1 is hole 1
         public int GetCurrentHole() { return CurrentHole; }
-        public int GetFurthestHole() { return FurthestHole; }
         public int GetStrokes() { return Strokes; }
     }
 }

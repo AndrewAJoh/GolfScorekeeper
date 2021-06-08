@@ -7,8 +7,7 @@ namespace GolfScorekeeper.lib
     {
         private GolfCourse Course;
         private int[] Scorecard;
-        private int CurrentHole;    //Current hole you have navigated to [range 1->[furthesthole + 1]]
-        private int FurthestHole;   //Furthest hole you have completed
+        private int CurrentHole;    //Current hole you are on (1 is hole 1)
         private int Strokes;
         public Round(GolfCourse course)
         {
@@ -22,16 +21,14 @@ namespace GolfScorekeeper.lib
                 Scorecard = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
             }
             CurrentHole = 1;
-            FurthestHole = 0;
             Strokes = 0;
         }
 
-        public Round(GolfCourse course, int[] scorecard, int currentHole, int furthestHole, int strokes)
+        public Round(GolfCourse course, int[] scorecard, int currentHole, int strokes)
         {
             Course = course;
             Scorecard = scorecard;
             CurrentHole = currentHole;
-            FurthestHole = furthestHole;
             Strokes = strokes;
         }
 
@@ -39,25 +36,27 @@ namespace GolfScorekeeper.lib
         public int[] GetScorecard() { return Scorecard; }
         public int GetScore(int hole) { return Scorecard[hole - 1]; } //1 is hole 1
         public int GetCurrentHole() { return CurrentHole; }
-        public int GetFurthestHole() { return FurthestHole; }
         public int GetCurrentCourseScore() { return Scorecard.Sum(); }
         public GolfCourse GetCourse() { return Course; }
-        public int GetCurrentCourseScoreRelativeToPar()
-        {
-            if (FurthestHole == 0)
-            {
-                return 0;
-            }
-            else
-            {
-                return Course.CalculateCurrentScore(FurthestHole, Scorecard.Sum());
-            }
-        }
+        public int GetCurrentCourseScoreRelativeToPar() { return Course.CalculateCurrentScoreRelativeToPar(Scorecard); }
         public int GetStrokes() { return Strokes; }
         public void SetScorecard(int[] inputScorecard) { Scorecard = inputScorecard; }
         public void SetScore(int hole, int score) { Scorecard[hole-1] = score; }    //1 is hole 1
         public void SetCurrentHole(int inputCurrentHole) { CurrentHole = inputCurrentHole; }
-        public void SetFurthestHole(int inputFurthestHole) { FurthestHole = inputFurthestHole; }
         public void SetStrokes(int inputStrokes) { Strokes = inputStrokes; }
+        public bool CheckForZeros()
+        {
+            bool containsZero = false;
+
+            for (int i = 0; i < Course.GetLength(); i++)
+            {
+                if (Scorecard[i] == 0)
+                {
+                    containsZero = true;
+                }
+            }
+
+            return containsZero;
+        }
     }
 }

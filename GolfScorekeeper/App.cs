@@ -57,6 +57,7 @@ namespace GolfScorekeeper
         private Button overallButton;
         private Button strokeButton;
         private Button enhanceButton;
+        private Button nextHoleButton;
         private StackLayout finalLayout;
         private string courseNameText;
         private List<GolfCourse> courseList;
@@ -154,7 +155,7 @@ namespace GolfScorekeeper
                     {
                         scorecard[i] = roundDB.GetScore(i+1);
                     }
-                    currentRound = new Round(currentCourse, scorecard, roundDB.GetCurrentHole(), roundDB.GetFurthestHole(), roundDB.GetStrokes());
+                    currentRound = new Round(currentCourse, scorecard, roundDB.GetCurrentHole(), roundDB.GetStrokes());
                 }
             }
             //Home page objects
@@ -178,7 +179,7 @@ namespace GolfScorekeeper
             Button addStrokeButton = new Button() { Text = "+1", FontSize = 20, BackgroundColor = greenColor };
             strokeButton = new Button() { Text = "0", BackgroundColor = greenColor };
             Button subtractStrokeButton = new Button() { Text = "-1", BackgroundColor = greenColor };
-            Button nextHoleButton = new Button() { Text = "Next\nHole", FontSize = Device.GetNamedSize(NamedSize.Small, typeof(Label)), BackgroundColor = sandColor, TextColor = Color.Black };
+            nextHoleButton = new Button() { Text = "Next\nHole", FontSize = Device.GetNamedSize(NamedSize.Small, typeof(Label)), BackgroundColor = sandColor, TextColor = Color.Black };
             Button previousHoleButton = new Button() { Text = "Prev\nHole", FontSize = Device.GetNamedSize(NamedSize.Small, typeof(Label)), BackgroundColor = sandColor, TextColor = Color.Black };
             Button resumeGameQuestionButton = new Button() { Text = "Resume Game", BackgroundColor = greenColor };
             Button newGameQuestionButton = new Button() { Text = "New Round", BackgroundColor = Color.DarkRed };
@@ -282,10 +283,10 @@ namespace GolfScorekeeper
             AbsoluteLayout.SetLayoutBounds(subtractStrokeButton, new Rectangle(0.5, 1, 155, 58));
             AbsoluteLayout.SetLayoutFlags(subtractStrokeButton, AbsoluteLayoutFlags.PositionProportional);
 
-            AbsoluteLayout.SetLayoutBounds(nextHoleButton, new Rectangle(1, 0, 100, 360));
+            AbsoluteLayout.SetLayoutBounds(nextHoleButton, new Rectangle(1, 0, 110, 360));
             AbsoluteLayout.SetLayoutFlags(nextHoleButton, AbsoluteLayoutFlags.PositionProportional);
 
-            AbsoluteLayout.SetLayoutBounds(previousHoleButton, new Rectangle(0, 0, 100, 360));
+            AbsoluteLayout.SetLayoutBounds(previousHoleButton, new Rectangle(0, 0, 110, 360));
             AbsoluteLayout.SetLayoutFlags(previousHoleButton, AbsoluteLayoutFlags.PositionProportional);
 
             AbsoluteLayout.SetLayoutBounds(scoreTrackerButton, new Rectangle(0.1, 0.35, 200, 80));
@@ -683,7 +684,7 @@ namespace GolfScorekeeper
                 scorecard = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
             }
 
-            currentRound = new Round(course, scorecard, 1, 0, 0);
+            currentRound = new Round(course, scorecard, 1, 0);
 
             roundInfoButton.Text = "H1" + " P" + Convert.ToString(course.GetHolePar(1));
             overallButton.Text = "ovr: 0";
@@ -816,31 +817,27 @@ namespace GolfScorekeeper
         protected void OnNextHoleButtonClicked(object sender, System.EventArgs e)
         {
             int currentHole = currentRound.GetCurrentHole();
-            int furthestHole = currentRound.GetFurthestHole();
             int courseLength = currentRound.GetCourse().GetLength();
             int strokes = currentRound.GetStrokes();
 
-            if (strokes == 0)
-            {
-                Toast.DisplayText("Enter a score <br>for this hole");
-                return;
-            }
+
             currentRound.SetScore(currentHole, strokes); //TODO: Can this be simplified? Automatically set score based on current hole and strokes 
 
 
             if (currentHole == courseLength) 
             {
-                //Increment FurthestHole so that the relative calculation contains all scores
-                currentRound.SetFurthestHole(furthestHole + 1); //Furthest hole will now be 18 or 9
-                FinishRound();
-                return;
+                if (currentRound.CheckForZeros())
+                {
+                    Toast.DisplayText("There is at least one <br> hole without a score.");
+                    return;
+                }
+                else
+                {
+                    FinishRound();
+                    return;
+                }
             }
              
-            //Ensure your relative par is based on the furthest hole that you have visited in the app
-            if (currentHole == furthestHole + 1)
-            {
-                currentRound.SetFurthestHole(furthestHole + 1);
-            }
             currentRound.SetCurrentHole(currentHole + 1);
 
             UpdateButtonsNext();
@@ -849,7 +846,6 @@ namespace GolfScorekeeper
         protected void OnPreviousHoleButtonClicked(object sender, System.EventArgs e)
         {
             int currentHole = currentRound.GetCurrentHole();
-            int furthestHole = currentRound.GetFurthestHole();
             int strokes = currentRound.GetStrokes();
 
             if (currentHole == 1)
@@ -857,22 +853,7 @@ namespace GolfScorekeeper
                 return;
             }
 
-            if (strokes == 0)
-            {
-                Toast.DisplayText("Enter a score before <br>returning to previous holes");
-                return;
-            }
-            else
-            {
-                currentRound.SetScore(currentHole, strokes);
-            }
-
-            //Fix scenario where score is not calculated correctly when player first clicks previous button
-            if (currentHole == furthestHole + 1)
-            {
-                currentRound.SetFurthestHole(currentRound.GetFurthestHole() + 1);
-            }
-
+            currentRound.SetScore(currentHole, strokes);
             currentRound.SetCurrentHole(currentHole - 1);
 
             UpdateButtonsPrevious();
@@ -892,6 +873,12 @@ namespace GolfScorekeeper
             }
 
             int currentHole = currentRound.GetCurrentHole();
+
+            if (currentHole == currentRound.GetCourse().GetLength())
+            {
+                nextHoleButton.Text = "Done";
+            }
+
             roundInfoButton.Text = "H" + currentHole + " P" + Convert.ToString(currentRound.GetCourse().GetHolePar(currentHole));
             overallButton.Text = "ovr: " + relativeCourseScoreString;
             currentRound.SetStrokes(currentRound.GetScore(currentHole));
@@ -909,6 +896,10 @@ namespace GolfScorekeeper
             else
             {
                 relativeCourseScoreString = Convert.ToString(currentCourseScoreRelativeToPar);
+            }
+           
+            if (nextHoleButton.Text.Equals("Done")){
+                nextHoleButton.Text = "Next\nHole";
             }
 
             int currentHole = currentRound.GetCurrentHole();
@@ -1621,10 +1612,8 @@ namespace GolfScorekeeper
         {
             if (midRound)
             {
-                if (currentRound.GetCurrentHole() == (currentRound.GetFurthestHole() + 1))
-                {
-                    currentRound.SetScore(currentRound.GetCurrentHole(), currentRound.GetStrokes());
-                }
+                //Save the score for the hole the player was on when they left
+                currentRound.SetScore(currentRound.GetCurrentHole(), currentRound.GetStrokes());
                 
                 RoundDB gameRecord = new RoundDB(currentRound);
                 dbConnection.InsertOrReplace(gameRecord);
