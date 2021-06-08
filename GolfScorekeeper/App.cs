@@ -38,6 +38,7 @@ namespace GolfScorekeeper
         private CirclePage mp;
         private CirclePage sp;
         private CirclePage ssp;
+        private CirclePage cffp;
         private CirclePage fp;
         private CirclePage qp;
         private CirclePage qqp;
@@ -52,6 +53,7 @@ namespace GolfScorekeeper
         private AbsoluteLayout courseDetailLayout;
         private AbsoluteLayout currentScoreCardLayout;
         private CircleScrollView courseSelectionLayout;
+        private AbsoluteLayout cFFinalPageLayout;
         private CircleScrollView finalScreenLayout;
         private Button roundInfoButton;
         private Button overallButton;
@@ -179,7 +181,7 @@ namespace GolfScorekeeper
             Button addStrokeButton = new Button() { Text = "+1", FontSize = 20, BackgroundColor = greenColor };
             strokeButton = new Button() { Text = "0", BackgroundColor = greenColor };
             Button subtractStrokeButton = new Button() { Text = "-1", BackgroundColor = greenColor };
-            nextHoleButton = new Button() { Text = "Next\nHole", FontSize = Device.GetNamedSize(NamedSize.Small, typeof(Label)), BackgroundColor = sandColor, TextColor = Color.Black };
+            nextHoleButton = new Button() { FontSize = Device.GetNamedSize(NamedSize.Small, typeof(Label)), BackgroundColor = sandColor, TextColor = Color.Black };
             Button previousHoleButton = new Button() { Text = "Prev\nHole", FontSize = Device.GetNamedSize(NamedSize.Small, typeof(Label)), BackgroundColor = sandColor, TextColor = Color.Black };
             Button resumeGameQuestionButton = new Button() { Text = "Resume Game", BackgroundColor = greenColor };
             Button newGameQuestionButton = new Button() { Text = "New Round", BackgroundColor = Color.DarkRed };
@@ -191,6 +193,15 @@ namespace GolfScorekeeper
             areYouReallySureLabel = new Label() { FontSize = 8 };
             Button yesButton = new Button() { Text = "Yes"};
             Button noButton = new Button() { Text = "No"};
+
+            Label finishRoundText = new Label(){ Text = "Finish Round?" };
+            Button finishRoundYesButton = new Button() { Text = "Yes" };
+            finishRoundYesButton.Clicked += FinishRound;
+            Button finishRoundNoButton = new Button() { Text = "No" };
+            finishRoundNoButton.Clicked += OnNoFinishRoundButtonClicked;
+
+            AbsoluteLayout.SetLayoutBounds(finishRoundText, new Rectangle(0.5, .25, 250, 80));
+            AbsoluteLayout.SetLayoutFlags(finishRoundText, AbsoluteLayoutFlags.PositionProportional);
 
 
             addStrokeButton.Clicked += OnAddStrokeButtonClicked;
@@ -227,6 +238,12 @@ namespace GolfScorekeeper
 
             AbsoluteLayout.SetLayoutBounds(noButton, new Rectangle(0.8, .7, 100, 60));
             AbsoluteLayout.SetLayoutFlags(noButton, AbsoluteLayoutFlags.PositionProportional);
+
+            AbsoluteLayout.SetLayoutBounds(finishRoundYesButton, new Rectangle(0.2, .7, 100, 60));
+            AbsoluteLayout.SetLayoutFlags(finishRoundYesButton, AbsoluteLayoutFlags.PositionProportional);
+
+            AbsoluteLayout.SetLayoutBounds(finishRoundNoButton, new Rectangle(0.8, .7, 100, 60));
+            AbsoluteLayout.SetLayoutFlags(finishRoundNoButton, AbsoluteLayoutFlags.PositionProportional);
 
             yesButton.Clicked += OnYesDeleteButtonClicked;
             noButton.Clicked += OnNoDeleteButtonClicked;
@@ -441,6 +458,24 @@ namespace GolfScorekeeper
                 BackgroundColor = darkGreenColor
             };
 
+            //Checkfor Final Page
+            cFFinalPageLayout = new AbsoluteLayout
+            {
+                Children =
+                {
+                    finishRoundYesButton,
+                    finishRoundNoButton,
+                    finishRoundText
+                }
+            };
+
+            //FinalPage (results screen)
+            cffp = new CirclePage()
+            {
+                Content = cFFinalPageLayout,
+                BackgroundColor = darkGreenColor
+            };
+
             finalScreenLayout = new CircleScrollView
             {
                 Content = finalLayout
@@ -460,6 +495,7 @@ namespace GolfScorekeeper
             NavigationPage.SetHasNavigationBar(qp, false);
             NavigationPage.SetHasNavigationBar(qqp, false);
             NavigationPage.SetHasNavigationBar(ep, false);
+            NavigationPage.SetHasNavigationBar(cffp, false);
             NavigationPage.SetHasNavigationBar(fp, false);
             NavigationPage.SetHasNavigationBar(clp, false);
             NavigationPage.SetHasNavigationBar(cdp, false);
@@ -689,6 +725,7 @@ namespace GolfScorekeeper
             roundInfoButton.Text = "H1" + " P" + Convert.ToString(course.GetHolePar(1));
             overallButton.Text = "ovr: 0";
             strokeButton.Text = "0";
+            nextHoleButton.Text = "Next\nHole";
 
             await MainPage.Navigation.PushAsync(ssp);
             MainPage.Navigation.RemovePage(sp);
@@ -833,7 +870,7 @@ namespace GolfScorekeeper
                 }
                 else
                 {
-                    FinishRound();
+                    CheckForFinishRound();
                     return;
                 }
             }
@@ -909,7 +946,12 @@ namespace GolfScorekeeper
             strokeButton.Text = Convert.ToString(currentRound.GetStrokes());
         }
 
-        public void FinishRound()
+        public void CheckForFinishRound()
+        {
+            MainPage.Navigation.PushAsync(cffp);
+        }
+
+        public async void FinishRound(object sender, System.EventArgs e)
         {
             finalLayout = new StackLayout
             {
@@ -1113,8 +1155,9 @@ namespace GolfScorekeeper
             finalLayout.Children.Add(g);
             finalLayout.Children.Add(new Label { });
 
-            MainPage.Navigation.PushAsync(fp);
+            await MainPage.Navigation.PushAsync(fp);
             MainPage.Navigation.RemovePage(ssp);
+            MainPage.Navigation.RemovePage(cffp);
             midRound = false;
 
             //Reset all round counters
@@ -1302,7 +1345,11 @@ namespace GolfScorekeeper
 
         protected void OnNoDeleteButtonClicked(object sender, System.EventArgs e)
         {
-            MainPage.Navigation.RemovePage(dp);
+            MainPage.Navigation.PopAsync();
+        }
+        protected void OnNoFinishRoundButtonClicked(object sender, System.EventArgs e)
+        {
+            MainPage.Navigation.PopAsync();
         }
 
         protected void OnNewGameQuestionButtonClicked(object sender, System.EventArgs e)
