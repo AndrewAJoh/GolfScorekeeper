@@ -15,8 +15,8 @@ namespace GolfScorekeeper
     {
         private SQLiteConnection dbConnection;
         private Button scoreTrackerButton;
-        private Button courseLookupButton;
-        private Button aboutButton;
+        private Button moreButton;
+        private Button greenButton;
         private Button teeBoxButton;
         private Button sandAstheticButton1;
         private Button sandAstheticButton2;
@@ -43,17 +43,21 @@ namespace GolfScorekeeper
         private CirclePage qp;
         private CirclePage qqp;
         private CirclePage ep;
+        private CirclePage mop;
         private CirclePage clp;
         private CirclePage cdp;
         private CirclePage scp;
         private CirclePage dp;
         private AbsoluteLayout homePageLayout;
         private StackLayout coursesLayout;
+        private StackLayout morePageStackLayout;
         private AbsoluteLayout enterPageLayout;
         private AbsoluteLayout courseDetailLayout;
         private AbsoluteLayout currentScoreCardLayout;
+        private CircleScrollView morePage;
         private CircleScrollView courseSelectionLayout;
         private AbsoluteLayout cFFinalPageLayout;
+        private CircleScrollView morePageScrollView;
         private CircleScrollView finalScreenLayout;
         private Button roundInfoButton;
         private Button overallButton;
@@ -162,8 +166,8 @@ namespace GolfScorekeeper
             }
             //Home page objects
             scoreTrackerButton = new Button() { Text = "Score Tracker", BackgroundColor = greenColor };
-            courseLookupButton = new Button() { Text = "Course Lookup", BackgroundColor = greenColor };
-            aboutButton = new Button() { Text = "About", FontSize = 4, BackgroundColor = puttingGreenColor };
+            moreButton = new Button() { Text = "More", BackgroundColor = greenColor };
+            greenButton = new Button() { BackgroundColor = puttingGreenColor };
             teeBoxButton = new Button() { BackgroundColor = greenColor };
             sandAstheticButton1 = new Button() { Text = "", BackgroundColor = sandColor };
             sandAstheticButton2 = new Button() { Text = "", BackgroundColor = sandColor };
@@ -211,7 +215,6 @@ namespace GolfScorekeeper
             previousHoleButton.Clicked += OnPreviousHoleButtonClicked;
             resumeGameQuestionButton.Clicked += OnResumeGameQuestionButtonClicked;
             newGameQuestionButton.Clicked += OnNewGameQuestionButtonClicked;
-            aboutButton.Clicked += OnAboutButtonClicked;
             waterAstheticButton1.Clicked += OnWaterAstheticButtonClicked;
             waterAstheticButton2.Clicked += OnWaterAstheticButtonClicked;
             roundInfoButton.Clicked += OnRoundInfoButtonClicked;
@@ -309,11 +312,11 @@ namespace GolfScorekeeper
             AbsoluteLayout.SetLayoutBounds(scoreTrackerButton, new Rectangle(0.1, 0.35, 200, 80));
             AbsoluteLayout.SetLayoutFlags(scoreTrackerButton, AbsoluteLayoutFlags.PositionProportional);
 
-            AbsoluteLayout.SetLayoutBounds(courseLookupButton, new Rectangle(0.1, 0.7, 200, 80));
-            AbsoluteLayout.SetLayoutFlags(courseLookupButton, AbsoluteLayoutFlags.PositionProportional);
+            AbsoluteLayout.SetLayoutBounds(moreButton, new Rectangle(0.1, 0.7, 200, 80));
+            AbsoluteLayout.SetLayoutFlags(moreButton, AbsoluteLayoutFlags.PositionProportional);
 
-            AbsoluteLayout.SetLayoutBounds(aboutButton, new Rectangle(0.88, 0.35, 75, 75));
-            AbsoluteLayout.SetLayoutFlags(aboutButton, AbsoluteLayoutFlags.PositionProportional);
+            AbsoluteLayout.SetLayoutBounds(greenButton, new Rectangle(0.88, 0.35, 75, 75));
+            AbsoluteLayout.SetLayoutFlags(greenButton, AbsoluteLayoutFlags.PositionProportional);
 
             AbsoluteLayout.SetLayoutBounds(teeBoxButton, new Rectangle(0.81, 0.69, 60, 50));
             AbsoluteLayout.SetLayoutFlags(teeBoxButton, AbsoluteLayoutFlags.PositionProportional);
@@ -353,8 +356,8 @@ namespace GolfScorekeeper
                 Children =
                 {
                     scoreTrackerButton,
-                    courseLookupButton,
-                    aboutButton,
+                    moreButton,
+                    greenButton,
                     teeBoxButton,
                     sandAstheticButton1,
                     sandAstheticButton2,
@@ -433,6 +436,11 @@ namespace GolfScorekeeper
                 BackgroundColor = darkGreenColor
             };
 
+            mop = new CirclePage()
+            {
+                BackgroundColor = darkGreenColor,
+            };
+
             //CourseListPage
             clp = new CirclePage()
             {
@@ -497,6 +505,7 @@ namespace GolfScorekeeper
             NavigationPage.SetHasNavigationBar(ep, false);
             NavigationPage.SetHasNavigationBar(cffp, false);
             NavigationPage.SetHasNavigationBar(fp, false);
+            NavigationPage.SetHasNavigationBar(mop, false);
             NavigationPage.SetHasNavigationBar(clp, false);
             NavigationPage.SetHasNavigationBar(cdp, false);
             NavigationPage.SetHasNavigationBar(scp, false);
@@ -504,7 +513,7 @@ namespace GolfScorekeeper
 
             MainPage = np;
             scoreTrackerButton.Clicked += DetermineNewOrResumeGame;
-            courseLookupButton.Clicked += OnCourseListButtonClicked;
+            moreButton.Clicked += OnMoreButtonClicked;
         }
         //Ask for course name. Happens before GoToParPrompt
         protected void GoToNamePrompt(object sender, System.EventArgs e)
@@ -625,6 +634,7 @@ namespace GolfScorekeeper
                 }
 
                 GenerateCourseList(true);
+                GenerateCourseList(false);
 
                 MainPage.Navigation.RemovePage(ep);
             }
@@ -794,13 +804,40 @@ namespace GolfScorekeeper
             strokeButton.Text = Convert.ToString(currentRound.GetStrokes());
         }
 
+        protected void OnMoreButtonClicked(object sender, System.EventArgs e)
+        {
+            Button courseLookupButton = new Button() { Text = "Course Lookup", FontSize = 6, BackgroundColor = greenColor };
+            courseLookupButton.Clicked += OnCourseListButtonClicked;
+            Button roundHistoryButton = new Button() { Text = "Round History", FontSize = 8, BackgroundColor = greenColor };
+            roundHistoryButton.Clicked += OnRoundHistoryButtonClicked;
+            Button aboutButton = new Button() { Text = "About", FontSize = 6, BackgroundColor = greenColor };
+            aboutButton.Clicked += OnAboutButtonClicked;
+
+            morePageStackLayout = new CircleStackLayout
+            {
+                Children =
+                {
+                    courseLookupButton,
+                    aboutButton
+                }
+            };
+            morePageScrollView = new CircleScrollView
+            {
+                Content = morePageStackLayout
+            };
+
+            mop.Content = morePageScrollView;
+
+            MainPage.Navigation.PushAsync(mop);
+        }
+
         protected void OnCourseListButtonClicked(object sender, System.EventArgs e)
         {
             GenerateCourseList(true);
             MainPage.Navigation.PushAsync(clp);
         }
 
-        protected void GenerateCourseList(bool courseLookupPage)
+        protected void GenerateCourseList(bool courseLookupPage)    //TODO: Rewrite this, try to get rid of the parameter
         {
             coursesLayout = new CircleStackLayout { };
             courseSelectionLayout = new CircleScrollView
@@ -816,18 +853,15 @@ namespace GolfScorekeeper
             }
 
             //Add "Add Course" button as the first option
-            if (courseLookupPage)
+            Button addNewCourseButton = new Button
             {
-                Button addNewCourseButton = new Button
-                {
-                    Text = "Add Course",
-                    BackgroundColor = grayColor,
-                    FontSize = 8
-                };
+                Text = "Add Course",
+                BackgroundColor = grayColor,
+                FontSize = 8
+            };
 
-                addNewCourseButton.Clicked += PlayCourse;
-                coursesLayout.Children.Add(addNewCourseButton);
-            }
+            addNewCourseButton.Clicked += PlayCourse;
+            coursesLayout.Children.Add(addNewCourseButton);
 
             //Add the list of courses in the database
             foreach(GolfCourse course in courseList)
@@ -1170,7 +1204,7 @@ namespace GolfScorekeeper
                 });
             }
 
-            //Add round record to ScoreDB
+            //Add round record to ScoreDB 
             ScoreDB roundScore = new ScoreDB(DateTime.Now, currentRound.GetCourseName(), currentRound.GetCurrentCourseScore());
             dbConnection.Insert(roundScore);
 
@@ -1325,6 +1359,11 @@ namespace GolfScorekeeper
             }
 
             MainPage.Navigation.RemovePage(cdp);
+        }
+
+        protected void OnRoundHistoryButtonClicked(object sender, System.EventArgs e)
+        {
+            
         }
 
         protected void OnAboutButtonClicked(object sender, System.EventArgs e)
