@@ -40,6 +40,7 @@ namespace GolfScorekeeper
         private CirclePage ssp;
         private CirclePage cffp;
         private CirclePage hp;
+        private CirclePage chp;
         private CirclePage fp;
         private CirclePage qp;
         private CirclePage qqp;
@@ -50,14 +51,12 @@ namespace GolfScorekeeper
         private CirclePage scp;
         private CirclePage dp;
         private AbsoluteLayout homePageLayout;
-        private StackLayout coursesLayout;
         private StackLayout historyLayout;
         private StackLayout morePageStackLayout;
         private AbsoluteLayout enterPageLayout;
         private AbsoluteLayout courseDetailLayout;
         private AbsoluteLayout currentScoreCardLayout;
         private CircleScrollView morePage;
-        private CircleScrollView courseSelectionScrollView;
         private CircleScrollView historyScrollView;
         private AbsoluteLayout cFFinalPageLayout;
         AbsoluteLayout questionPageLayout;
@@ -441,6 +440,11 @@ namespace GolfScorekeeper
                 BackgroundColor = darkGreenColor
             };
 
+            chp = new CirclePage()
+            {
+                BackgroundColor = darkGreenColor
+            };
+
             //CourseDetailPage
             cdp = new CirclePage()
             {
@@ -499,6 +503,7 @@ namespace GolfScorekeeper
             NavigationPage.SetHasNavigationBar(ep, false);
             NavigationPage.SetHasNavigationBar(cffp, false);
             NavigationPage.SetHasNavigationBar(hp, false);
+            NavigationPage.SetHasNavigationBar(chp, false);
             NavigationPage.SetHasNavigationBar(fp, false);
             NavigationPage.SetHasNavigationBar(mop, false);
             NavigationPage.SetHasNavigationBar(clp, false);
@@ -661,8 +666,8 @@ namespace GolfScorekeeper
                     dbConnection.InsertOrReplace(golfCourse);
                 }
 
-                GenerateCourseList(true);
-                GenerateCourseList(false);
+                GenerateCourseList(false, true, false);
+                GenerateCourseList(true, false, false);
 
                 MainPage.Navigation.RemovePage(ep);
             }
@@ -699,7 +704,7 @@ namespace GolfScorekeeper
             else
             {
                 //Bring up course selection - it is a new game
-                GenerateCourseList(false);
+                GenerateCourseList(true, false, false);
                 MainPage.Navigation.PushAsync(sp);
             }
         }
@@ -804,8 +809,8 @@ namespace GolfScorekeeper
 
         protected void OnYesConfirmButtonClicked(object sender, System.EventArgs e)
         {
-            //Bug fix where new custom course wouldn't show up if mid-round for that course the first time
-            GenerateCourseList(false);
+            //Ensure new course is loaded
+            GenerateCourseList(true, false, false);
             MainPage.Navigation.PushAsync(sp);
             MainPage.Navigation.RemovePage(qqp);
             midRound = false;
@@ -876,35 +881,53 @@ namespace GolfScorekeeper
 
         protected void OnCourseListButtonClicked(object sender, System.EventArgs e)
         {
-            GenerateCourseList(true);
+            GenerateCourseList(false, true, false);
             MainPage.Navigation.PushAsync(clp);
         }
 
-        protected void GenerateCourseList(bool courseLookupPage)    //TODO: Rewrite this, try to get rid of the parameter
+        protected void GenerateCourseList(bool courseSelectPage, bool courseLookupPage, bool roundHistoryPage)
         {
-            coursesLayout = new CircleStackLayout { };
-            courseSelectionScrollView = new CircleScrollView
+
+            CircleScrollView resultView;
+            if (courseLookupPage)
+            {
+                resultView = GenerateList(false, true, false);
+                clp.Content = resultView;
+            }
+            if (courseSelectPage)
+            {
+                resultView = GenerateList(true, false, false);
+                sp.Content = resultView;
+            }
+            if (roundHistoryPage)
+            {
+                resultView = GenerateList(false, false, true);
+                hp.Content = resultView;
+            }
+
+        }
+
+        protected CircleScrollView GenerateList(bool courseSelectPage, bool courseLookupPage, bool roundHistoryPage)    //TODO: Rewrite this, try to get rid of the parameter
+        {
+            CircleStackLayout coursesLayout = new CircleStackLayout { };
+            CircleScrollView courseSelectionScrollView = new CircleScrollView
             {
                 Content = coursesLayout
             };
-            if (courseLookupPage) {
-                clp.Content = courseSelectionScrollView;
-            }
-            else
-            {
-                sp.Content = courseSelectionScrollView;
-            }
 
-            //Add "Add Course" button as the first option
-            Button addNewCourseButton = new Button
+            if (!roundHistoryPage)
             {
-                Text = "Add Course",
-                BackgroundColor = grayColor,
-                FontSize = 8
-            };
+                Button addNewCourseButton = new Button
+                {
+                    Text = "Add Course",
+                    BackgroundColor = grayColor,
+                    FontSize = 8
+                };
 
-            addNewCourseButton.Clicked += PlayCourse;
-            coursesLayout.Children.Add(addNewCourseButton);
+                addNewCourseButton.Clicked += PlayCourse;
+
+                coursesLayout.Children.Add(addNewCourseButton);
+            }
 
             //Add the list of courses in the database
             foreach(GolfCourse course in courseList)
@@ -915,16 +938,22 @@ namespace GolfScorekeeper
                     BackgroundColor = greenColor,
                     FontSize = 8
                 };
-                if (courseLookupPage)
-                {
-                    courseNameButton.Clicked += ListCourseDetails;
-                }
-                else
+                if (courseSelectPage)
                 {
                     courseNameButton.Clicked += PlayCourse;
                 }
+                else if (courseLookupPage)
+                {
+                    courseNameButton.Clicked += ListCourseDetails;
+                }
+                else if (roundHistoryPage)
+                {
+                    courseNameButton.Clicked += GenerateRoundHistory;
+                }
                 coursesLayout.Children.Add(courseNameButton);
             }
+
+            return courseSelectionScrollView;
         }
 
         protected void OnNextHoleButtonClicked(object sender, System.EventArgs e)
@@ -1373,7 +1402,7 @@ namespace GolfScorekeeper
             //Remove course from database as well as global list (courseList)
             courseList.Remove(courseList.First(c => c.GetCourseName().Equals(courseName)));
 
-            GenerateCourseList(true);
+            GenerateCourseList(false, true, false);
 
             if (midRound)
             {
@@ -1405,33 +1434,7 @@ namespace GolfScorekeeper
 
         protected void OnRoundHistoryButtonClicked(object sender, System.EventArgs e)
         {
-            historyLayout = new CircleStackLayout { };
-            historyScrollView = new CircleScrollView
-            {
-                Content = historyLayout
-            };
-
-            hp.Content = historyScrollView;
-
-            var scoreDBList = dbConnection.Query<ScoreDB>("select * from ScoreDB order by Date desc;");
-
-            String roundDetails;
-
-            foreach (var scoreDB in scoreDBList)
-            {
-                roundDetails = scoreDB.CourseName + " ";
-                roundDetails += scoreDB.Date.ToString("MM/dd/yy");
-
-                Button historicalRoundButton = new Button
-                {
-                    Text = roundDetails,
-                    BackgroundColor = grayColor,
-                    FontSize = 8
-                };
-
-                historyLayout.Children.Add(historicalRoundButton);
-            }
-
+            GenerateCourseList(false, false, true);
             MainPage.Navigation.PushAsync(hp);
         }
 
@@ -1757,6 +1760,48 @@ namespace GolfScorekeeper
 
             scp.Content = enhancedScreenLayout;
 
+        }
+
+        public void GenerateRoundHistory(object sender, System.EventArgs e)
+        {
+            Toast.DisplayText("To be determined...");
+
+
+            /* Rough outline of what will go here
+             * 
+             *            historyLayout = new CircleStackLayout { };
+            historyScrollView = new CircleScrollView
+            {
+                Content = historyLayout
+            };
+
+            chp.Content = historyScrollView //may be wrong
+             *             var scoreDBList = dbConnection.Query<ScoreDB>("select * from ScoreDB order by Date desc;");
+
+            String roundDetails;
+
+            foreach (var scoreDB in scoreDBList)
+            {
+                roundDetails = scoreDB.CourseName + " ";
+                roundDetails += scoreDB.Date.ToString("MM/dd/yy");
+
+                Button historicalRoundButton = new Button
+                {
+                    Text = roundDetails,
+                    BackgroundColor = grayColor,
+                    FontSize = 8
+                };
+
+                historicalRoundButton.Clicked += GenerateRoundHistory;
+
+                historyLayout.Children.Add(historicalRoundButton);
+
+            
+ 
+            }
+
+            //MainPage.Navigation.PushAsync(chp);
+            */
         }
 
         public int CheckCourseDuplicate(GolfCourse course)  //return 1 if course name already exists, else 0
