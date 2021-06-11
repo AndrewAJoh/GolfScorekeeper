@@ -51,7 +51,6 @@ namespace GolfScorekeeper
         private CirclePage scp;
         private CirclePage dp;
         private AbsoluteLayout homePageLayout;
-        private StackLayout historyLayout;
         private StackLayout morePageStackLayout;
         private AbsoluteLayout enterPageLayout;
         private AbsoluteLayout courseDetailLayout;
@@ -675,12 +674,6 @@ namespace GolfScorekeeper
 
         protected void DetermineNewOrResumeGame(object sender, System.EventArgs e)
         {
-            if (courseList.Count == 0)
-            {
-                Toast.DisplayText("You have not added any<br> courses yet. Go to<br>'Course Lookup' -> <br>'Add Course'.");
-                return;
-            }
-
             if (midRound)
             {
                 //Ask player whether they want to resume or start new
@@ -853,11 +846,11 @@ namespace GolfScorekeeper
 
         protected void OnMoreButtonClicked(object sender, System.EventArgs e)
         {
-            Button courseLookupButton = new Button() { Text = "Course Lookup", FontSize = 6, BackgroundColor = greenColor };
+            Button courseLookupButton = new Button() { Text = "Course List", FontSize = 8, BackgroundColor = greenColor };
             courseLookupButton.Clicked += OnCourseListButtonClicked;
             Button roundHistoryButton = new Button() { Text = "Round History", FontSize = 8, BackgroundColor = greenColor };
             roundHistoryButton.Clicked += OnRoundHistoryButtonClicked;
-            Button aboutButton = new Button() { Text = "About", FontSize = 6, BackgroundColor = greenColor };
+            Button aboutButton = new Button() { Text = "About", FontSize = 8, BackgroundColor = greenColor };
             aboutButton.Clicked += OnAboutButtonClicked;
 
             morePageStackLayout = new CircleStackLayout
@@ -948,7 +941,7 @@ namespace GolfScorekeeper
                 }
                 else if (roundHistoryPage)
                 {
-                    courseNameButton.Clicked += GenerateRoundHistory;
+                    courseNameButton.Clicked += GenerateRoundHistoryList;
                 }
                 coursesLayout.Children.Add(courseNameButton);
             }
@@ -1762,21 +1755,16 @@ namespace GolfScorekeeper
 
         }
 
-        public void GenerateRoundHistory(object sender, System.EventArgs e)
+        public void GenerateRoundHistoryList(object sender, System.EventArgs e)
         {
-            Toast.DisplayText("To be determined...");
-
-
-            /* Rough outline of what will go here
-             * 
-             *            historyLayout = new CircleStackLayout { };
-            historyScrollView = new CircleScrollView
+            var courseName = (sender as Button).Text;
+            StackLayout historyLayout = new CircleStackLayout { };
+            CircleScrollView historyScrollView = new CircleScrollView
             {
                 Content = historyLayout
             };
 
-            chp.Content = historyScrollView //may be wrong
-             *             var scoreDBList = dbConnection.Query<ScoreDB>("select * from ScoreDB order by Date desc;");
+            var scoreDBList = dbConnection.Query<ScoreDB>("select * from ScoreDB where CourseName = '" + courseName + "' order by Date desc;");
 
             String roundDetails;
 
@@ -1795,13 +1783,15 @@ namespace GolfScorekeeper
                 historicalRoundButton.Clicked += GenerateRoundHistory;
 
                 historyLayout.Children.Add(historicalRoundButton);
-
-            
- 
             }
 
-            //MainPage.Navigation.PushAsync(chp);
-            */
+            chp.Content = historyScrollView;
+            MainPage.Navigation.PushAsync(chp);
+        }
+
+        public void GenerateRoundHistory(object sender, System.EventArgs e)
+        {
+            Toast.DisplayText("Text goes here");
         }
 
         public int CheckCourseDuplicate(GolfCourse course)  //return 1 if course name already exists, else 0
@@ -1817,13 +1807,20 @@ namespace GolfScorekeeper
         }
         public int CheckCurrentCourse(GolfCourse course)  //return 1 if course is currently being played, else 0
         {
-            if (currentRound.GetCourseName().Equals(course.GetCourseName()) && (midRound))
+            if (!midRound)
             {
-                return 1;
+                return 0;
             }
             else
             {
-                return 0;
+                if (currentRound.GetCourseName().Equals(course.GetCourseName()) && (midRound))
+                {
+                    return 1;
+                }
+                else
+                {
+                    return 0;
+                }
             }
         }
 
