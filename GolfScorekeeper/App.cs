@@ -54,7 +54,6 @@ namespace GolfScorekeeper
         private StackLayout morePageStackLayout;
         private AbsoluteLayout enterPageLayout;
         private AbsoluteLayout courseDetailLayout;
-        private AbsoluteLayout currentScoreCardLayout;
         private CircleScrollView morePage;
         private CircleScrollView historyScrollView;
         private AbsoluteLayout cFFinalPageLayout;
@@ -785,6 +784,7 @@ namespace GolfScorekeeper
             //Keep values
             int currentHole = currentRound.GetCurrentHole();
             roundInfoButton.Text = "H" + Convert.ToString(currentHole) + " P" + Convert.ToString(currentRound.GetCourse().GetHolePar(currentHole));
+            nextHoleButton.Text = "Next\nHole";
 
             int currentCourseScoreRelativeToPar = currentRound.GetCurrentCourseScoreRelativeToPar();
             if (currentCourseScoreRelativeToPar > 0)
@@ -1269,7 +1269,16 @@ namespace GolfScorekeeper
             }
 
             //Add round record to ScoreDB 
-            ScoreDB roundScore = new ScoreDB(DateTime.Now, currentRound.GetCourseName(), currentRound.GetCurrentCourseScore());
+            //Convert scorecard
+            string scorecard = "";
+            int[] scorecardInt = currentRound.GetScorecard();
+
+            for (int i = 0; i < scorecardInt.Length; i++)
+            {
+                scorecard += scorecardInt[i].ToString();
+            }
+
+            ScoreDB roundScore = new ScoreDB(DateTime.Now, currentRound.GetCourseName(), scorecard);
             dbConnection.Insert(roundScore);
 
         }
@@ -1565,7 +1574,7 @@ namespace GolfScorekeeper
             enhanceButton = new Button() { Text = "Zoom In" };
             enhanceButton.Clicked += OnEnhanceButtonClicked;
 
-            currentScoreCardLayout = new AbsoluteLayout
+            AbsoluteLayout currentScorecardLayout = new AbsoluteLayout
             {
                 Children =
                 {
@@ -1599,7 +1608,7 @@ namespace GolfScorekeeper
             AbsoluteLayout.SetLayoutBounds(enhanceButton, new Rectangle(0.5, 0.9, 150, 60));
             AbsoluteLayout.SetLayoutFlags(enhanceButton, AbsoluteLayoutFlags.PositionProportional);
 
-            scp.Content = currentScoreCardLayout;
+            scp.Content = currentScorecardLayout;
             
             await MainPage.Navigation.PushAsync(scp);
         }
@@ -1767,9 +1776,10 @@ namespace GolfScorekeeper
             var scoreDBList = dbConnection.Query<ScoreDB>("select * from ScoreDB where CourseName = '" + courseName + "' order by Date desc;");
 
             String roundDetails;
-
+            var countRecords = 0;
             foreach (var scoreDB in scoreDBList)
             {
+                countRecords++;
                 roundDetails = scoreDB.CourseName + " ";
                 roundDetails += scoreDB.Date.ToString("MM/dd/yy");
 
@@ -1784,9 +1794,15 @@ namespace GolfScorekeeper
 
                 historyLayout.Children.Add(historicalRoundButton);
             }
-
-            chp.Content = historyScrollView;
-            MainPage.Navigation.PushAsync(chp);
+            if (countRecords == 0)
+            {
+                Toast.DisplayText("No records to show");
+            }
+            else
+            {
+                chp.Content = historyScrollView;
+                MainPage.Navigation.PushAsync(chp);
+            }
         }
 
         public void GenerateRoundHistory(object sender, System.EventArgs e)

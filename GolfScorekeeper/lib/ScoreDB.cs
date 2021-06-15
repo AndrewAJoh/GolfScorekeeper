@@ -6,14 +6,14 @@ namespace GolfScorekeeper.lib
     public class ScoreDB
     {
         public string CourseName { get; set; }
-        public int Score { get; set; }
+        public string Scorecard { get; set; }
         public DateTime Date { get; set; }
         public ScoreDB() { }
-        public ScoreDB(DateTime date, string courseName, int score)
+        public ScoreDB(DateTime date, string courseName, string scorecard)
         {
             Date = date;
             CourseName = courseName;
-            Score = score;
+            Scorecard = scorecard;
         }
     }
 }

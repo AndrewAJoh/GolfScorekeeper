@@ -10,7 +10,6 @@ namespace GolfScorekeeper.lib
         public string CourseName { get; set; }
         public string Scorecard { get; set; }
         public int CurrentHole { get; set; }
-        public int FurthestHole { get; set; }
         public int Strokes { get; set; }
         public RoundDB(){} //Empty constructor is needed for SQLite
         public RoundDB(Round round)
@@ -28,7 +27,6 @@ namespace GolfScorekeeper.lib
 
             Scorecard = scorecard;
             CurrentHole = round.GetCurrentHole();
-            FurthestHole = 0;
             Strokes = round.GetStrokes();
         }
         public string GetCourseName() { return CourseName; }
