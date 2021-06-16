@@ -5,6 +5,9 @@ namespace GolfScorekeeper.lib
 {
     public class ScoreDB
     {
+        [PrimaryKey]
+        [AutoIncrement]
+        public int ID { get; set; }
         public string CourseName { get; set; }
         public string Scorecard { get; set; }
         public DateTime Date { get; set; }

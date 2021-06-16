@@ -65,7 +65,6 @@ namespace GolfScorekeeper
         private Button strokeButton;
         private Button enhanceButton;
         private Button nextHoleButton;
-        private StackLayout finalLayout;
         private string courseNameText;
         private List<GolfCourse> courseList;
         private Round currentRound;
@@ -74,6 +73,7 @@ namespace GolfScorekeeper
         private string newCourseName;
         private bool midRound = false;
         private bool isEnhanced = false;
+        private string historyCourse; //The course you have navigated to in the game history
         GolfCourse courseToBeAdded;
 
         private readonly Color greenColor = Color.FromRgb(10, 80, 22);
@@ -99,6 +99,7 @@ namespace GolfScorekeeper
             dbConnection.CreateTable<RoundDB>();
             dbConnection.CreateTable<Course>();
             dbConnection.CreateTable<GolfCourseDB>();
+            dbConnection.DropTable<ScoreDB>();
             dbConnection.CreateTable<ScoreDB>();
 
             //Import old Course data
@@ -480,15 +481,9 @@ namespace GolfScorekeeper
                 BackgroundColor = darkGreenColor
             };
 
-            finalScreenLayout = new CircleScrollView
-            {
-                Content = finalLayout
-            };
-
             //FinalPage (results screen)
             fp = new CirclePage()
             {
-                Content = finalScreenLayout,
                 BackgroundColor = darkGreenColor
             };
 
@@ -1051,7 +1046,7 @@ namespace GolfScorekeeper
 
         public async void FinishRound(object sender, System.EventArgs e)
         {
-            finalLayout = new StackLayout
+            StackLayout finalLayout = new StackLayout
             {
                 HorizontalOptions = LayoutOptions.Center,
                 Children =
@@ -1062,7 +1057,10 @@ namespace GolfScorekeeper
                         }
                     }
             };
-            finalScreenLayout.Content = finalLayout;
+            finalScreenLayout = new CircleScrollView
+            {
+                Content = finalLayout
+            };
 
             finalLayout.Children.Add(new Label
             {
@@ -1079,15 +1077,6 @@ namespace GolfScorekeeper
             });
 
             int currentCourseScoreRelativeToPar = currentRound.GetCurrentCourseScoreRelativeToPar();
-            string relativeCourseScoreString;
-            if (currentCourseScoreRelativeToPar > 0)
-            {
-                relativeCourseScoreString = "+" + Convert.ToString(currentCourseScoreRelativeToPar);
-            }
-            else
-            {
-                relativeCourseScoreString = Convert.ToString(currentCourseScoreRelativeToPar);
-            }
 
             Grid g = new Grid
             {
@@ -1252,6 +1241,8 @@ namespace GolfScorekeeper
 
             finalLayout.Children.Add(g);
             finalLayout.Children.Add(new Label { });
+
+            fp.Content = finalScreenLayout;
 
             await MainPage.Navigation.PushAsync(fp);
             MainPage.Navigation.RemovePage(ssp);
@@ -1767,6 +1758,7 @@ namespace GolfScorekeeper
         public void GenerateRoundHistoryList(object sender, System.EventArgs e)
         {
             var courseName = (sender as Button).Text;
+            historyCourse = courseName;
             StackLayout historyLayout = new CircleStackLayout { };
             CircleScrollView historyScrollView = new CircleScrollView
             {
@@ -1775,17 +1767,14 @@ namespace GolfScorekeeper
 
             var scoreDBList = dbConnection.Query<ScoreDB>("select * from ScoreDB where CourseName = '" + courseName + "' order by Date desc;");
 
-            String roundDetails;
             var countRecords = 0;
             foreach (var scoreDB in scoreDBList)
             {
                 countRecords++;
-                roundDetails = scoreDB.CourseName + " ";
-                roundDetails += scoreDB.Date.ToString("MM/dd/yy");
 
                 Button historicalRoundButton = new Button
                 {
-                    Text = roundDetails,
+                    Text = "#" + scoreDB.ID.ToString() + " " + scoreDB.Date.ToString("MM/dd/yy"),
                     BackgroundColor = grayColor,
                     FontSize = 8
                 };
@@ -1807,7 +1796,229 @@ namespace GolfScorekeeper
 
         public void GenerateRoundHistory(object sender, System.EventArgs e)
         {
-            Toast.DisplayText("Text goes here");
+            var roundDetails = (sender as Button).Text;
+            string roundID = Convert.ToString(roundDetails[roundDetails.IndexOf("#") + 1]);
+            ScoreDB round = dbConnection.Query<ScoreDB>("select * from ScoreDB where ID = '" + roundID + "';").FirstOrDefault();
+            GolfCourse course = courseList.FirstOrDefault(c => c.GetCourseName().Equals(round.CourseName));
+            
+            //Convert scorecard to int[]
+            int[] scorecard;
+            if (course.GetLength() == 18)
+            {
+                scorecard = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+            }
+            else
+            {
+                scorecard = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+            }
+            for (int i = 0; i < course.GetLength(); i++)
+            {
+                scorecard[i] = Convert.ToInt32(Convert.ToString(round.Scorecard[i]));
+            }
+
+            int currentCourseScoreRelativeToPar = course.CalculateCurrentScoreRelativeToPar(scorecard);
+
+
+            StackLayout finalLayout = new StackLayout
+            {
+                HorizontalOptions = LayoutOptions.Center,
+                Children =
+                    {
+                        new Label
+                        {
+                            Text = ""
+                        }
+                    }
+            };
+            finalScreenLayout = new CircleScrollView
+            {
+                Content = finalLayout
+            };
+
+            finalLayout.Children.Add(new Label
+            {
+                Text = round.CourseName,
+                HorizontalOptions = LayoutOptions.Center,
+                HorizontalTextAlignment = TextAlignment.Center
+            });
+
+            finalLayout.Children.Add(new Label
+            {
+                Text = DateTime.Now.ToString("MM/dd"),
+                HorizontalOptions = LayoutOptions.Center,
+                HorizontalTextAlignment = TextAlignment.Center
+            });
+
+            
+
+            Grid g = new Grid
+            {
+                RowDefinitions =
+                {
+                },
+                ColumnDefinitions =
+                {
+                    new ColumnDefinition{ Width = 70 },
+                    new ColumnDefinition{ Width = 70 },
+                    new ColumnDefinition{ Width = 70 }
+                }
+            };
+
+            g.Children.Add(new BoxView
+            {
+                Color = grayColor
+            }, 0, 0);
+
+            g.Children.Add(new Label
+            {
+                Text = "Hole",
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center,
+                FontSize = 8
+            }, 0, 0);
+
+            g.Children.Add(new BoxView
+            {
+                Color = grayColor
+            }, 1, 0);
+
+            g.Children.Add(new Label
+            {
+                Text = "Par",
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center,
+                FontSize = 8
+            }, 1, 0);
+
+            g.Children.Add(new BoxView
+            {
+                Color = grayColor
+            }, 2, 0);
+
+            g.Children.Add(new Label
+            {
+                Text = "Score",
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center,
+                FontSize = 8
+            }, 2, 0);
+
+            int courseLength = round.Scorecard.Length;
+
+            for (int i = 0; i < courseLength; i++)
+            {
+                g.Children.Add(new BoxView
+                {
+                    Color = grayColor
+                }, 0, i + 1);
+
+                g.Children.Add(new Label
+                {
+                    Text = Convert.ToString(i + 1),
+                    HorizontalOptions = LayoutOptions.Center,
+                    VerticalOptions = LayoutOptions.Center,
+                    FontSize = 8
+                }, 0, i + 1);
+
+                g.Children.Add(new BoxView
+                {
+                    Color = darkGreenColor
+                }, 1, i + 1);
+
+                g.Children.Add(new Label
+                {
+                    Text = Convert.ToString(course.GetHolePar(i + 1)),
+                    HorizontalOptions = LayoutOptions.Center,
+                    VerticalOptions = LayoutOptions.Center,
+                    FontSize = 8
+                }, 1, i + 1);
+
+                g.Children.Add(new BoxView
+                {
+                    Color = greenColor
+                }, 2, i + 1);
+
+                g.Children.Add(new Label
+                {
+                    Text = Convert.ToString(round.Scorecard[i]),
+                    HorizontalOptions = LayoutOptions.Center,
+                    VerticalOptions = LayoutOptions.Center,
+                    FontSize = 8
+                }, 2, i + 1);
+            }
+
+            g.Children.Add(new BoxView
+            {
+                Color = grayColor
+            }, 0, courseLength + 1);
+
+            g.Children.Add(new Label
+            {
+                Text = "Total",
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center,
+                FontSize = 8
+            }, 0, courseLength + 1);
+
+            g.Children.Add(new BoxView
+            {
+                Color = grayColor
+            }, 1, courseLength + 1);
+
+            g.Children.Add(new Label
+            {
+                Text = Convert.ToString(course.GetCoursePar()),
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center,
+                FontSize = 8
+            }, 1, courseLength + 1);
+
+            g.Children.Add(new BoxView
+            {
+                Color = grayColor
+            }, 2, courseLength + 1);
+
+            g.Children.Add(new Label
+            {
+                Text = Convert.ToString(scorecard.Sum()),
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center,
+                FontSize = 8
+            }, 2, courseLength + 1);
+
+            g.Children.Add(new BoxView
+            {
+                Color = grayColor
+            }, 0, courseLength + 2);
+
+            g.Children.Add(new Label
+            {
+                Text = "Ovr",
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center,
+                FontSize = 8
+            }, 0, courseLength + 2);
+
+            g.Children.Add(new BoxView
+            {
+                Color = grayColor
+            }, 2, courseLength + 2);
+
+            g.Children.Add(new Label
+            {
+                Text = currentCourseScoreRelativeToPar > 0 ? "+" + Convert.ToString(currentCourseScoreRelativeToPar) : Convert.ToString(currentCourseScoreRelativeToPar),
+                HorizontalOptions = LayoutOptions.Center,
+                VerticalOptions = LayoutOptions.Center,
+                FontSize = 8
+            }, 2, courseLength + 2);
+
+            finalLayout.Children.Add(g);
+            finalLayout.Children.Add(new Label { });
+
+            fp.Content = finalScreenLayout;
+
+            MainPage.Navigation.PushAsync(fp);
+
         }
 
         public int CheckCourseDuplicate(GolfCourse course)  //return 1 if course name already exists, else 0
