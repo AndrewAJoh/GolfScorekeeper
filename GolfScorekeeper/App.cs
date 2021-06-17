@@ -99,7 +99,6 @@ namespace GolfScorekeeper
             dbConnection.CreateTable<RoundDB>();
             dbConnection.CreateTable<Course>();
             dbConnection.CreateTable<GolfCourseDB>();
-            dbConnection.DropTable<ScoreDB>();
             dbConnection.CreateTable<ScoreDB>();
 
             //Import old Course data
@@ -616,8 +615,9 @@ namespace GolfScorekeeper
 
                 courseToBeAdded = new GolfCourse(newCourseName, newCourseScorecardIntArray);
 
-                int resultDuplicate = CheckCourseDuplicate(courseToBeAdded);  //Change this to check if course to be overwritten is the one currently playing
+                int resultDuplicate = CheckCourseDuplicate(courseToBeAdded);
                 int resultCurrentCourse = CheckCurrentCourse(courseToBeAdded);
+
                 if (resultDuplicate == 1 && resultCurrentCourse == 1)
                 {
                     Button yes = new Button
@@ -653,15 +653,21 @@ namespace GolfScorekeeper
                 }
                 else
                 {
-                    courseList.Remove(courseList.FirstOrDefault(c => c.GetCourseName().Equals(courseToBeAdded.GetCourseName())));
-                    courseList.Add(courseToBeAdded);
                     GolfCourseDB golfCourse = new GolfCourseDB(courseToBeAdded);
-                    dbConnection.InsertOrReplace(golfCourse);
+                    try
+                    {
+                        dbConnection.InsertOrReplace(golfCourse);
+                        courseList.Add(courseToBeAdded);
+                    }
+                    catch
+                    {
+                        Toast.DisplayText("Failed to write course to database.<br><br>Check device memory<br>or send an email to support.", 10000);
+                    }
                 }
 
                 GenerateCourseList(false, true, false);
                 GenerateCourseList(true, false, false);
-
+                
                 MainPage.Navigation.RemovePage(ep);
             }
         }
@@ -1270,8 +1276,14 @@ namespace GolfScorekeeper
             }
 
             ScoreDB roundScore = new ScoreDB(DateTime.Now, currentRound.GetCourseName(), scorecard);
-            dbConnection.Insert(roundScore);
-
+            try
+            {
+                dbConnection.Insert(roundScore);
+            }
+            catch
+            {
+                Toast.DisplayText("Failed to write score to database.<br><br>Check device memory<br>or send an email to support.", 10000);
+            }
         }
 
         protected async void ListCourseDetails(object sender, System.EventArgs e)
@@ -1458,11 +1470,22 @@ namespace GolfScorekeeper
         }
         protected void OnYesOverwriteCourseClicked(object sender, System.EventArgs e)
         {
+            try
+            {
+                GolfCourseDB golfCourse = new GolfCourseDB(courseToBeAdded);
+                dbConnection.InsertOrReplace(golfCourse);
+            }
+            catch
+            {
+                Toast.DisplayText("Failed to write course to database.<br><br>Check device memory<br>or send an email to support.", 10000);
+                return;
+            }
+
             midRound = false;
+
             courseList.Remove(courseList.FirstOrDefault(c => c.GetCourseName().Equals(courseToBeAdded.GetCourseName())));
             courseList.Add(courseToBeAdded);
-            GolfCourseDB golfCourse = new GolfCourseDB(courseToBeAdded);
-            dbConnection.InsertOrReplace(golfCourse);
+            
             MainPage.Navigation.PopAsync();
             Toast.DisplayText("Course information for <br>" + newCourseName + "<br>has been overwritten.");
         }
