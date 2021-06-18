@@ -75,6 +75,7 @@ namespace GolfScorekeeper
         private bool midRound = false;
         private bool isEnhanced = false;
         private string historyCourse; //The course you have navigated to in the game history
+        private string historyRoundID; //The round you have navigated to in the game history
         GolfCourse courseToBeAdded;
 
         private readonly Color greenColor = Color.FromRgb(10, 80, 22);
@@ -919,7 +920,7 @@ namespace GolfScorekeeper
                 }
                 else if (roundHistoryPage)
                 {
-                    courseNameButton.Clicked += GenerateRoundHistoryList;
+                    courseNameButton.Clicked += ReceiveHistoryCourse;
                 }
                 coursesLayout.Children.Add(courseNameButton);
             }
@@ -1060,7 +1061,7 @@ namespace GolfScorekeeper
             });
 
             int currentCourseScoreRelativeToPar = currentRound.GetCurrentCourseScoreRelativeToPar();
-
+         
             Grid g = new Grid
             {
                 RowDefinitions =
@@ -1610,7 +1611,7 @@ namespace GolfScorekeeper
 
         protected void OnNoConfirmButtonClicked(object sender, System.EventArgs e)
         {
-            MainPage.Navigation.RemovePage(qcp);
+            MainPage.Navigation.PopAsync();
         }
         protected async void OnRoundInfoButtonClicked(object sender, System.EventArgs e)
         {
@@ -1886,17 +1887,31 @@ namespace GolfScorekeeper
 
         }
 
-        public void GenerateRoundHistoryList(object sender, System.EventArgs e)
+        public void ReceiveHistoryCourse(object sender, System.EventArgs e)
         {
             var courseName = (sender as Button).Text;
             historyCourse = courseName;
+            var result = GenerateRoundHistoryList(historyCourse);
+            if (result)
+            {
+                MainPage.Navigation.PushAsync(chp);
+            }
+            else
+            {
+                Toast.DisplayText("No records to show");
+            }
+        }
+
+        //GenerateRoundHistoryList can be called on its own to refresh list of courses. Returns true if >0 rounds for the course
+        public bool GenerateRoundHistoryList(string course)
+        {
             StackLayout historyLayout = new CircleStackLayout { };
             CircleScrollView historyScrollView = new CircleScrollView
             {
                 Content = historyLayout
             };
 
-            var scoreDBList = dbConnection.Query<ScoreDB>("select * from ScoreDB where CourseName = '" + courseName + "' order by Date desc;");
+            var scoreDBList = dbConnection.Query<ScoreDB>("select * from ScoreDB where CourseName = '" + historyCourse + "' order by Date desc;");
 
             var countRecords = 0;
             foreach (var scoreDB in scoreDBList)
@@ -1916,12 +1931,12 @@ namespace GolfScorekeeper
             }
             if (countRecords == 0)
             {
-                Toast.DisplayText("No records to show");
+                return false;
             }
             else
             {
                 chp.Content = historyScrollView;
-                MainPage.Navigation.PushAsync(chp);
+                return true;
             }
         }
 
@@ -1929,6 +1944,7 @@ namespace GolfScorekeeper
         {
             var roundDetails = (sender as Button).Text;
             string roundID = Convert.ToString(roundDetails[roundDetails.IndexOf("#") + 1]);
+            historyRoundID = roundID;
             ScoreDB round = dbConnection.Query<ScoreDB>("select * from ScoreDB where ID = '" + roundID + "';").FirstOrDefault();
             GolfCourse course = courseList.FirstOrDefault(c => c.GetCourseName().Equals(round.CourseName));
             
@@ -2144,12 +2160,77 @@ namespace GolfScorekeeper
             }, 2, courseLength + 2);
 
             finalLayout.Children.Add(g);
+
+            Button deleteButton = new Button { Text = "Delete Round", BackgroundColor = greenColor };
+            deleteButton.Clicked += OnDeleteRoundButtonClicked;
+
+            finalLayout.Children.Add(deleteButton);
             finalLayout.Children.Add(new Label { });
 
             fp.Content = finalScreenLayout;
 
             MainPage.Navigation.PushAsync(fp);
 
+        }
+
+        protected void OnDeleteRoundButtonClicked(object sender, System.EventArgs e)
+        {
+            Button yesConfirmButton = new Button() { Text = "Yes" };
+            AbsoluteLayout.SetLayoutBounds(yesConfirmButton, new Rectangle(0.2, .75, 100, 60));
+            AbsoluteLayout.SetLayoutFlags(yesConfirmButton, AbsoluteLayoutFlags.PositionProportional);
+            yesConfirmButton.Clicked += OnYesConfirmDeleteRoundButtonClicked;
+
+            Button noConfirmButton = new Button() { Text = "No" };
+            AbsoluteLayout.SetLayoutBounds(noConfirmButton, new Rectangle(0.8, .75, 100, 60));
+            AbsoluteLayout.SetLayoutFlags(noConfirmButton, AbsoluteLayoutFlags.PositionProportional);
+            noConfirmButton.Clicked += OnNoConfirmButtonClicked;
+
+            Label messageLabel = new Label() { Text = "Delete Round?" };
+            AbsoluteLayout.SetLayoutBounds(messageLabel, new Rectangle(0.5, .3, 225, 120));
+            AbsoluteLayout.SetLayoutFlags(messageLabel, AbsoluteLayoutFlags.PositionProportional);
+
+            AbsoluteLayout questionConfirmLayout = new AbsoluteLayout
+            {
+                Children =
+                {
+                    messageLabel,
+                    yesConfirmButton,
+                    noConfirmButton
+                }
+            };
+
+            CircleScrollView questionConfirmScrollView = new CircleScrollView
+            {
+                Content = questionConfirmLayout
+            };
+
+            qcp.Content = questionConfirmScrollView;
+
+            MainPage.Navigation.PushAsync(qcp);
+        }
+
+        protected void OnYesConfirmDeleteRoundButtonClicked(object sender, System.EventArgs e)
+        {
+            var scoreQueryResult = dbConnection.Query<ScoreDB>("select * from ScoreDB where ID = '" + historyRoundID + "';").FirstOrDefault();
+            if (scoreQueryResult != null)
+            {
+                dbConnection.RunInTransaction(() =>
+                {
+                    dbConnection.Delete(scoreQueryResult);
+                });
+                Toast.DisplayText("Round deleted", 2000);
+            }
+
+            MainPage.Navigation.PopAsync();
+            MainPage.Navigation.PopAsync();
+
+            //Refresh list of rounds for the course
+            var result = GenerateRoundHistoryList(historyCourse);
+            
+            if (!result)
+            {
+                MainPage.Navigation.PopAsync();
+            }
         }
 
         public int CheckCourseDuplicate(GolfCourse course)  //return 1 if course name already exists, else 0
