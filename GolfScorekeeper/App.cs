@@ -35,21 +35,22 @@ namespace GolfScorekeeper
         private Button customCourseNextButton;
         private Button customNineButton;
         private Button customEighteenButton;
-        private CirclePage mp;
-        private CirclePage sp;
-        private CirclePage ssp;
-        private CirclePage cffp;
-        private CirclePage hp;
-        private CirclePage chp;
-        private CirclePage fp;
-        private CirclePage qp;
-        private CirclePage qqp;
-        private CirclePage ep;
-        private CirclePage mop;
-        private CirclePage clp;
-        private CirclePage cdp;
-        private CirclePage scp;
-        private CirclePage dp;
+        private CirclePage mp; //MainPage
+        private CirclePage sp; //SubPage
+        private CirclePage ssp; //SubSubPage
+        private CirclePage cffp; //ConfirmFinishFinalPage
+        private CirclePage hp; //HistoryPage
+        private CirclePage chp; //CourseHistoryPage
+        private CirclePage fp; //FinalPage
+        private CirclePage qp; //QuestionPage
+        private CirclePage qcp; //QuestionConfirmPage
+        private CirclePage ep; //EntryPage
+        private CirclePage mop; //MorePage
+        private CirclePage clp; //CourseListPage
+        private CirclePage cdp; //CourseDetailsPage
+        private CirclePage scp; //ScoreDetailPage
+        private CirclePage dp; //DeletePage
+        private CirclePage ddp; //DataDeletePage
         private AbsoluteLayout homePageLayout;
         private StackLayout morePageStackLayout;
         private AbsoluteLayout enterPageLayout;
@@ -189,10 +190,6 @@ namespace GolfScorekeeper
             Button subtractStrokeButton = new Button() { Text = "-1", BackgroundColor = greenColor };
             nextHoleButton = new Button() { FontSize = Device.GetNamedSize(NamedSize.Small, typeof(Label)), BackgroundColor = sandColor, TextColor = Color.Black };
             Button previousHoleButton = new Button() { Text = "Prev\nHole", FontSize = Device.GetNamedSize(NamedSize.Small, typeof(Label)), BackgroundColor = sandColor, TextColor = Color.Black };
-            
-            Label messageLabel = new Label() { Text = "All current round\ndata will be lost.\nAre you sure?" };
-            Button yesConfirmButton = new Button() { Text = "Yes"};
-            Button noConfirmButton = new Button() { Text = "No"};
 
             areYouSureLabel = new Label() { };
             areYouReallySureLabel = new Label() { FontSize = 8 };
@@ -249,32 +246,8 @@ namespace GolfScorekeeper
 
             yesButton.Clicked += OnYesDeleteButtonClicked;
             noButton.Clicked += OnNoDeleteButtonClicked;
-            
-            yesConfirmButton.Clicked += OnYesConfirmButtonClicked;
-            noConfirmButton.Clicked += OnNoConfirmButtonClicked;
 
             questionPageLayout = new AbsoluteLayout { };
-
-            AbsoluteLayout questionConfirmCircleStackLayout = new AbsoluteLayout
-            {
-                Children =
-                {
-                    messageLabel,
-                    yesConfirmButton,
-                    noConfirmButton
-                }
-            };
-
-            
-
-            AbsoluteLayout.SetLayoutBounds(messageLabel, new Rectangle(0.5, .35, 225, 200));
-            AbsoluteLayout.SetLayoutFlags(messageLabel, AbsoluteLayoutFlags.PositionProportional);
-
-            AbsoluteLayout.SetLayoutBounds(yesConfirmButton, new Rectangle(0.2, .7, 100, 60));
-            AbsoluteLayout.SetLayoutFlags(yesConfirmButton, AbsoluteLayoutFlags.PositionProportional);
-
-            AbsoluteLayout.SetLayoutBounds(noConfirmButton, new Rectangle(0.8, .7, 100, 60));
-            AbsoluteLayout.SetLayoutFlags(noConfirmButton, AbsoluteLayoutFlags.PositionProportional);
 
             AbsoluteLayout.SetLayoutBounds(roundInfoButton, new Rectangle(0.5, 0, 155, 50));
             AbsoluteLayout.SetLayoutFlags(roundInfoButton, AbsoluteLayoutFlags.PositionProportional);
@@ -365,10 +338,7 @@ namespace GolfScorekeeper
                 Content = questionPageLayout
             };
 
-            CircleScrollView questionConfirmLayout = new CircleScrollView
-            {
-                Content = questionConfirmCircleStackLayout
-            };
+            
 
             AbsoluteLayout parTrackerLayout = new AbsoluteLayout()
             {
@@ -410,9 +380,8 @@ namespace GolfScorekeeper
                 BackgroundColor = darkGreenColor
             };
 
-            qqp = new CirclePage()
+            qcp = new CirclePage()
             {
-                Content = questionConfirmLayout,
                 BackgroundColor = darkGreenColor
             };
 
@@ -462,6 +431,11 @@ namespace GolfScorekeeper
                 BackgroundColor = darkGreenColor
             };
 
+            ddp = new CirclePage()
+            {
+                BackgroundColor = darkGreenColor
+            };
+
             //Checkfor Final Page
             cFFinalPageLayout = new AbsoluteLayout
             {
@@ -473,7 +447,6 @@ namespace GolfScorekeeper
                 }
             };
 
-            //FinalPage (results screen)
             cffp = new CirclePage()
             {
                 Content = cFFinalPageLayout,
@@ -491,7 +464,7 @@ namespace GolfScorekeeper
             NavigationPage.SetHasNavigationBar(sp, false);
             NavigationPage.SetHasNavigationBar(ssp, false);
             NavigationPage.SetHasNavigationBar(qp, false);
-            NavigationPage.SetHasNavigationBar(qqp, false);
+            NavigationPage.SetHasNavigationBar(qcp, false);
             NavigationPage.SetHasNavigationBar(ep, false);
             NavigationPage.SetHasNavigationBar(cffp, false);
             NavigationPage.SetHasNavigationBar(hp, false);
@@ -502,6 +475,7 @@ namespace GolfScorekeeper
             NavigationPage.SetHasNavigationBar(cdp, false);
             NavigationPage.SetHasNavigationBar(scp, false);
             NavigationPage.SetHasNavigationBar(dp, false);
+            NavigationPage.SetHasNavigationBar(ddp, false);
 
             MainPage = np;
             scoreTrackerButton.Clicked += DetermineNewOrResumeGame;
@@ -806,7 +780,7 @@ namespace GolfScorekeeper
             //Ensure new course is loaded
             GenerateCourseList(true, false, false);
             MainPage.Navigation.PushAsync(sp);
-            MainPage.Navigation.RemovePage(qqp);
+            MainPage.Navigation.RemovePage(qcp);
             midRound = false;
 
             //Reset CurrentGame table
@@ -853,6 +827,8 @@ namespace GolfScorekeeper
             roundHistoryButton.Clicked += OnRoundHistoryButtonClicked;
             Button aboutButton = new Button() { Text = "About", FontSize = 8, BackgroundColor = greenColor };
             aboutButton.Clicked += OnAboutButtonClicked;
+            Button deleteDataButton = new Button() { Text = "Delete Data", FontSize = 8, BackgroundColor = greenColor };
+            deleteDataButton.Clicked += OnDeleteDataButtonClicked;
 
             morePageStackLayout = new CircleStackLayout
             {
@@ -860,7 +836,8 @@ namespace GolfScorekeeper
                 {
                     courseLookupButton,
                     roundHistoryButton,
-                    aboutButton
+                    aboutButton,
+                    deleteDataButton
                 }
             };
             morePageScrollView = new CircleScrollView
@@ -1445,7 +1422,107 @@ namespace GolfScorekeeper
 
         protected void OnAboutButtonClicked(object sender, System.EventArgs e)
         {
-            Toast.DisplayText("Developed by<br>Andrew Johnson<br>Version 1.0");
+            Toast.DisplayText("Developed by<br>Andrew Johnson<br>Version 1.1");
+        }
+
+        protected void OnDeleteDataButtonClicked(object sender, System.EventArgs e)
+        {
+            Button deleteRoundHistoryButton = new Button { Text = "Delete all round data", FontSize = 10, BackgroundColor = Color.DarkRed };
+            deleteRoundHistoryButton.Clicked += OnDeleteRoundHistoryButtonClicked;
+            Button deleteCourseDataButton = new Button { Text = "Delete all courses", FontSize = 10, BackgroundColor = Color.DarkRed };
+            deleteCourseDataButton.Clicked += OnDeleteCourseDataButtonClicked;
+
+            AbsoluteLayout.SetLayoutBounds(deleteRoundHistoryButton, new Rectangle(0.5, 0.2, 250, 80));
+            AbsoluteLayout.SetLayoutFlags(deleteRoundHistoryButton, AbsoluteLayoutFlags.PositionProportional);
+            AbsoluteLayout.SetLayoutBounds(deleteCourseDataButton, new Rectangle(0.5, 0.8, 250, 80));
+            AbsoluteLayout.SetLayoutFlags(deleteCourseDataButton, AbsoluteLayoutFlags.PositionProportional);
+
+
+            AbsoluteLayout deleteDataLayout = new AbsoluteLayout
+            {
+                Children =
+                {
+                    deleteRoundHistoryButton,
+                    deleteCourseDataButton
+                }
+            };
+            ddp.Content = deleteDataLayout;
+            MainPage.Navigation.PushAsync(ddp);
+        }
+
+        protected void OnDeleteRoundHistoryButtonClicked(object sender, System.EventArgs e)
+        {
+            Button yesConfirmButton = new Button() { Text = "Yes" };
+            AbsoluteLayout.SetLayoutBounds(yesConfirmButton, new Rectangle(0.2, .75, 100, 60));
+            AbsoluteLayout.SetLayoutFlags(yesConfirmButton, AbsoluteLayoutFlags.PositionProportional);
+            yesConfirmButton.Clicked += OnYesConfirmDeleteRoundHistoryButtonClicked;
+
+            Button noConfirmButton = new Button() { Text = "No" };
+            AbsoluteLayout.SetLayoutBounds(noConfirmButton, new Rectangle(0.8, .75, 100, 60));
+            AbsoluteLayout.SetLayoutFlags(noConfirmButton, AbsoluteLayoutFlags.PositionProportional);
+            noConfirmButton.Clicked += OnNoDeleteButtonClicked;
+
+            Label messageLabel = new Label() { Text = "All round data\nwill be lost.\nAre you sure?" };
+            AbsoluteLayout.SetLayoutBounds(messageLabel, new Rectangle(0.5, .3, 225, 120));
+            AbsoluteLayout.SetLayoutFlags(messageLabel, AbsoluteLayoutFlags.PositionProportional);
+
+            AbsoluteLayout deleteDataLayout = new AbsoluteLayout
+            {
+                Children =
+                {
+                    yesConfirmButton,
+                    noConfirmButton,
+                    messageLabel
+                }
+            };
+
+            qcp.Content = deleteDataLayout;
+
+            MainPage.Navigation.PushAsync(qcp);
+        }
+
+        protected void OnYesConfirmDeleteRoundHistoryButtonClicked(object sender, System.EventArgs e)
+        {
+            dbConnection.DropTable<ScoreDB>();
+            dbConnection.CreateTable<ScoreDB>();
+            MainPage.Navigation.PopAsync();
+        }
+
+        protected void OnDeleteCourseDataButtonClicked(object sender, System.EventArgs e)
+        {
+            Button yesConfirmButton = new Button() { Text = "Yes" };
+            AbsoluteLayout.SetLayoutBounds(yesConfirmButton, new Rectangle(0.2, .75, 100, 60));
+            AbsoluteLayout.SetLayoutFlags(yesConfirmButton, AbsoluteLayoutFlags.PositionProportional);
+            yesConfirmButton.Clicked += OnYesConfirmDeleteCoursesButtonClicked;
+
+            Button noConfirmButton = new Button() { Text = "No" };
+            AbsoluteLayout.SetLayoutBounds(noConfirmButton, new Rectangle(0.8, .75, 100, 60));
+            AbsoluteLayout.SetLayoutFlags(noConfirmButton, AbsoluteLayoutFlags.PositionProportional);
+            noConfirmButton.Clicked += OnNoDeleteButtonClicked;
+
+            Label messageLabel = new Label() { Text = "All courses\nwill be deleted.\nAre you sure?" };
+            AbsoluteLayout.SetLayoutBounds(messageLabel, new Rectangle(0.5, .3, 225, 120));
+            AbsoluteLayout.SetLayoutFlags(messageLabel, AbsoluteLayoutFlags.PositionProportional);
+
+            AbsoluteLayout deleteDataLayout = new AbsoluteLayout
+            {
+                Children =
+                {
+                    yesConfirmButton,
+                    noConfirmButton,
+                    messageLabel
+                }
+            };
+
+            qcp.Content = deleteDataLayout;
+
+            MainPage.Navigation.PushAsync(qcp);
+        }
+        protected void OnYesConfirmDeleteCoursesButtonClicked(object sender, System.EventArgs e)
+        {
+            dbConnection.DropTable<GolfCourseDB>();
+            dbConnection.CreateTable<GolfCourseDB>();
+            MainPage.Navigation.PopAsync();
         }
 
         protected void OnWaterAstheticButtonClicked(object sender, System.EventArgs e)
@@ -1497,12 +1574,43 @@ namespace GolfScorekeeper
 
         protected void OnNewGameQuestionButtonClicked(object sender, System.EventArgs e)
         {
-            MainPage.Navigation.PushAsync(qqp);
+            Button yesConfirmButton = new Button() { Text = "Yes" };
+            AbsoluteLayout.SetLayoutBounds(yesConfirmButton, new Rectangle(0.2, .75, 100, 60));
+            AbsoluteLayout.SetLayoutFlags(yesConfirmButton, AbsoluteLayoutFlags.PositionProportional);
+            yesConfirmButton.Clicked += OnYesConfirmButtonClicked;
+
+            Button noConfirmButton = new Button() { Text = "No" };
+            AbsoluteLayout.SetLayoutBounds(noConfirmButton, new Rectangle(0.8, .75, 100, 60));
+            AbsoluteLayout.SetLayoutFlags(noConfirmButton, AbsoluteLayoutFlags.PositionProportional);
+            noConfirmButton.Clicked += OnNoConfirmButtonClicked;
+
+            Label messageLabel = new Label() { Text = "All current round\ndata will be lost.\nAre you sure?" };
+            AbsoluteLayout.SetLayoutBounds(messageLabel, new Rectangle(0.5, .3, 225, 120));
+            AbsoluteLayout.SetLayoutFlags(messageLabel, AbsoluteLayoutFlags.PositionProportional);
+
+            AbsoluteLayout questionConfirmLayout = new AbsoluteLayout
+            {
+                Children =
+                {
+                    messageLabel,
+                    yesConfirmButton,
+                    noConfirmButton
+                }
+            };
+
+            CircleScrollView questionConfirmScrollView = new CircleScrollView
+            {
+                Content = questionConfirmLayout
+            };
+
+            qcp.Content = questionConfirmScrollView;
+
+            MainPage.Navigation.PushAsync(qcp);
         }
 
         protected void OnNoConfirmButtonClicked(object sender, System.EventArgs e)
         {
-            MainPage.Navigation.RemovePage(qqp);
+            MainPage.Navigation.RemovePage(qcp);
         }
         protected async void OnRoundInfoButtonClicked(object sender, System.EventArgs e)
         {
