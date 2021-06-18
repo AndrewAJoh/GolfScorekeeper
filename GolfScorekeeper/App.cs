@@ -1055,7 +1055,7 @@ namespace GolfScorekeeper
 
             finalLayout.Children.Add(new Label
             {
-                Text = DateTime.Now.ToString("MM/dd"),
+                Text = DateTime.Now.ToString("MM/dd/yyyy"),
                 HorizontalOptions = LayoutOptions.Center,
                 HorizontalTextAlignment = TextAlignment.Center
             });
@@ -1244,19 +1244,12 @@ namespace GolfScorekeeper
             }
 
             //Add round record to ScoreDB 
-            //Convert scorecard
-            string scorecard = "";
-            int[] scorecardInt = currentRound.GetScorecard();
+            Score roundScore = new Score(DateTime.Now, currentRound.GetCourseName(), currentRound.GetScorecard());
+            ScoreDB roundScoreDB = new ScoreDB(roundScore);
 
-            for (int i = 0; i < scorecardInt.Length; i++)
-            {
-                scorecard += scorecardInt[i].ToString();
-            }
-
-            ScoreDB roundScore = new ScoreDB(DateTime.Now, currentRound.GetCourseName(), scorecard);
             try
             {
-                dbConnection.Insert(roundScore);
+                dbConnection.Insert(roundScoreDB);
             }
             catch
             {
@@ -1943,28 +1936,18 @@ namespace GolfScorekeeper
         public void GenerateRoundHistory(object sender, System.EventArgs e)
         {
             var roundDetails = (sender as Button).Text;
-            string roundID = Convert.ToString(roundDetails[roundDetails.IndexOf("#") + 1]);
+            string roundID = Convert.ToString(roundDetails);
+            roundID = roundID.Split(' ')[0].Substring(1);
             historyRoundID = roundID;
-            ScoreDB round = dbConnection.Query<ScoreDB>("select * from ScoreDB where ID = '" + roundID + "';").FirstOrDefault();
-            GolfCourse course = courseList.FirstOrDefault(c => c.GetCourseName().Equals(round.CourseName));
-            
-            //Convert scorecard to int[]
-            int[] scorecard;
-            if (course.GetLength() == 18)
-            {
-                scorecard = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-            }
-            else
-            {
-                scorecard = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-            }
-            for (int i = 0; i < course.GetLength(); i++)
-            {
-                scorecard[i] = Convert.ToInt32(Convert.ToString(round.Scorecard[i]));
-            }
+            ScoreDB scoreDB = dbConnection.Query<ScoreDB>("select * from ScoreDB where ID = '" + roundID + "';").FirstOrDefault();    //Scorecard has length 10
+            Score score = new Score(scoreDB);
 
+            GolfCourse course = courseList.FirstOrDefault(c => c.GetCourseName().Equals(score.GetCourseName()));
+
+            int[] scorecard = score.GetScorecard();
+            int scorecardLength = scorecard.Length;
+             
             int currentCourseScoreRelativeToPar = course.CalculateCurrentScoreRelativeToPar(scorecard);
-
 
             StackLayout finalLayout = new StackLayout
             {
@@ -1984,14 +1967,14 @@ namespace GolfScorekeeper
 
             finalLayout.Children.Add(new Label
             {
-                Text = round.CourseName,
+                Text = score.GetCourseName(),
                 HorizontalOptions = LayoutOptions.Center,
                 HorizontalTextAlignment = TextAlignment.Center
             });
 
             finalLayout.Children.Add(new Label
             {
-                Text = DateTime.Now.ToString("MM/dd"),
+                Text = DateTime.Now.ToString("MM/dd/yyyy"),
                 HorizontalOptions = LayoutOptions.Center,
                 HorizontalTextAlignment = TextAlignment.Center
             });
@@ -2050,9 +2033,7 @@ namespace GolfScorekeeper
                 FontSize = 8
             }, 2, 0);
 
-            int courseLength = round.Scorecard.Length;
-
-            for (int i = 0; i < courseLength; i++)
+            for (int i = 0; i < scorecard.Length; i++)
             {
                 g.Children.Add(new BoxView
                 {
@@ -2087,7 +2068,7 @@ namespace GolfScorekeeper
 
                 g.Children.Add(new Label
                 {
-                    Text = Convert.ToString(round.Scorecard[i]),
+                    Text = Convert.ToString(scorecard[i]),
                     HorizontalOptions = LayoutOptions.Center,
                     VerticalOptions = LayoutOptions.Center,
                     FontSize = 8
@@ -2097,7 +2078,7 @@ namespace GolfScorekeeper
             g.Children.Add(new BoxView
             {
                 Color = grayColor
-            }, 0, courseLength + 1);
+            }, 0, scorecardLength + 1);
 
             g.Children.Add(new Label
             {
@@ -2105,12 +2086,12 @@ namespace GolfScorekeeper
                 HorizontalOptions = LayoutOptions.Center,
                 VerticalOptions = LayoutOptions.Center,
                 FontSize = 8
-            }, 0, courseLength + 1);
+            }, 0, scorecardLength + 1);
 
             g.Children.Add(new BoxView
             {
                 Color = grayColor
-            }, 1, courseLength + 1);
+            }, 1, scorecardLength + 1);
 
             g.Children.Add(new Label
             {
@@ -2118,12 +2099,12 @@ namespace GolfScorekeeper
                 HorizontalOptions = LayoutOptions.Center,
                 VerticalOptions = LayoutOptions.Center,
                 FontSize = 8
-            }, 1, courseLength + 1);
+            }, 1, scorecardLength + 1);
 
             g.Children.Add(new BoxView
             {
                 Color = grayColor
-            }, 2, courseLength + 1);
+            }, 2, scorecardLength + 1);
 
             g.Children.Add(new Label
             {
@@ -2131,12 +2112,12 @@ namespace GolfScorekeeper
                 HorizontalOptions = LayoutOptions.Center,
                 VerticalOptions = LayoutOptions.Center,
                 FontSize = 8
-            }, 2, courseLength + 1);
+            }, 2, scorecardLength + 1);
 
             g.Children.Add(new BoxView
             {
                 Color = grayColor
-            }, 0, courseLength + 2);
+            }, 0, scorecardLength + 2);
 
             g.Children.Add(new Label
             {
@@ -2144,12 +2125,12 @@ namespace GolfScorekeeper
                 HorizontalOptions = LayoutOptions.Center,
                 VerticalOptions = LayoutOptions.Center,
                 FontSize = 8
-            }, 0, courseLength + 2);
+            }, 0, scorecardLength + 2);
 
             g.Children.Add(new BoxView
             {
                 Color = grayColor
-            }, 2, courseLength + 2);
+            }, 2, scorecardLength + 2);
 
             g.Children.Add(new Label
             {
@@ -2157,7 +2138,7 @@ namespace GolfScorekeeper
                 HorizontalOptions = LayoutOptions.Center,
                 VerticalOptions = LayoutOptions.Center,
                 FontSize = 8
-            }, 2, courseLength + 2);
+            }, 2, scorecardLength + 2);
 
             finalLayout.Children.Add(g);
 
@@ -2170,7 +2151,6 @@ namespace GolfScorekeeper
             fp.Content = finalScreenLayout;
 
             MainPage.Navigation.PushAsync(fp);
-
         }
 
         protected void OnDeleteRoundButtonClicked(object sender, System.EventArgs e)
