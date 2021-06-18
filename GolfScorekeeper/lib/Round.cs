@@ -32,6 +32,47 @@ namespace GolfScorekeeper.lib
             Strokes = strokes;
         }
 
+        public Round(RoundDB roundDB, GolfCourse course)
+        {
+            Course = course;
+
+            if (roundDB.Size == 9)
+            {
+                Scorecard = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+            }
+            else
+            {
+                Scorecard = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+            }
+
+            Scorecard[0] = roundDB.ScoreOne;
+            Scorecard[1] = roundDB.ScoreTwo;
+            Scorecard[2] = roundDB.ScoreThree;
+            Scorecard[3] = roundDB.ScoreFour;
+            Scorecard[4] = roundDB.ScoreFive;
+            Scorecard[5] = roundDB.ScoreSix;
+            Scorecard[6] = roundDB.ScoreSeven;
+            Scorecard[7] = roundDB.ScoreEight;
+            Scorecard[8] = roundDB.ScoreNine;
+
+            if (roundDB.Size == 18)
+            {
+                Scorecard[9] = roundDB.ScoreTen;
+                Scorecard[10] = roundDB.ScoreEleven;
+                Scorecard[11] = roundDB.ScoreTwelve;
+                Scorecard[12] = roundDB.ScoreThirteen;
+                Scorecard[13] = roundDB.ScoreFourteen;
+                Scorecard[14] = roundDB.ScoreFifteen;
+                Scorecard[15] = roundDB.ScoreSixteen;
+                Scorecard[16] = roundDB.ScoreSeventeen;
+                Scorecard[17] = roundDB.ScoreEighteen;
+
+            }
+
+            CurrentHole = roundDB.CurrentHole;
+            Strokes = roundDB.Strokes;
+        }
+
         public string GetCourseName() { return Course.GetCourseName(); }    //TODO: Either keep this in or get rid of it so it's consistent (return just the course or add all getter methods)
         public int[] GetScorecard() { return Scorecard; }
         public int GetScore(int hole) { return Scorecard[hole - 1]; } //1 is hole 1

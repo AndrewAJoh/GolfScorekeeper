@@ -147,25 +147,11 @@ namespace GolfScorekeeper
 
             if (currentGame == 1)
             {
-                foreach (var roundDB in roundDBList)        //This is fine to keep for now as we will eventually be pulling previous games in from the DB
+                midRound = true;
+                foreach (var roundDB in roundDBList)
                 {
-                    midRound = true;
-                    GolfCourse currentCourse = courseList.First(c => c.GetCourseName().Equals(roundDB.GetCourseName()));
-                    //Importing roundDB record into currentRound, must convert scorecard first
-                    int[] scorecard;
-                    if (currentCourse.GetLength() == 18)
-                    {
-                        scorecard = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-                    }
-                    else
-                    {
-                        scorecard = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-                    }
-                    for (int i = 0; i < currentCourse.GetLength(); i++)
-                    {
-                        scorecard[i] = roundDB.GetScore(i+1);
-                    }
-                    currentRound = new Round(currentCourse, scorecard, roundDB.GetCurrentHole(), roundDB.GetStrokes());
+                    GolfCourse currentCourse = courseList.First(c => c.GetCourseName().Equals(roundDB.CourseName));
+                    currentRound = new Round(roundDB, currentCourse);
                 }
             }
             //Home page objects
@@ -197,7 +183,7 @@ namespace GolfScorekeeper
             Button yesButton = new Button() { Text = "Yes"};
             Button noButton = new Button() { Text = "No"};
 
-            Label finishRoundText = new Label(){ Text = "Finish Round?" };
+            Label finishRoundText = new Label(){ Text = "Finish Round?", HorizontalOptions = LayoutOptions.Center };
             Button finishRoundYesButton = new Button() { Text = "Yes" };
             finishRoundYesButton.Clicked += FinishRound;
             Button finishRoundNoButton = new Button() { Text = "No" };
@@ -496,7 +482,7 @@ namespace GolfScorekeeper
             customCourseEntry.TextColor = Color.Black;
             customCourseEntry.BackgroundColor = Color.White;
             customCourseEntry.Opacity = 10;
-            customCourseEntry.MaxLength = 25;
+            customCourseEntry.MaxLength = 20;
 
             enterPageLayout.Children.Remove(customNineButton);
             enterPageLayout.Children.Remove(customEighteenButton);
@@ -605,7 +591,8 @@ namespace GolfScorekeeper
                     };
                     Label prompt = new Label
                     {
-                        Text = "Current round will be\nreset if course is overwritten.\nContinue?"
+                        Text = "Current round will be\nreset if course is overwritten.\nContinue?",
+                        HorizontalOptions = LayoutOptions.Center
                     };
 
                     AbsoluteLayout.SetLayoutBounds(yes, new Rectangle(0.2, .7, 100, 60));
@@ -735,17 +722,7 @@ namespace GolfScorekeeper
         {
             midRound = true;
             GolfCourse course = courseList.First(c => c.GetCourseName().Equals(courseName));
-            int[] scorecard;
-            if (course.GetLength() == 18)
-            {
-                scorecard = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-            }
-            else
-            {
-                scorecard = new int[] { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-            }
-
-            currentRound = new Round(course, scorecard, 1, 0);
+            currentRound = new Round(course);
 
             roundInfoButton.Text = "H1" + " P" + Convert.ToString(course.GetHolePar(1));
             overallButton.Text = "ovr: 0";
@@ -1072,7 +1049,8 @@ namespace GolfScorekeeper
                     new ColumnDefinition{ Width = 70 },
                     new ColumnDefinition{ Width = 70 },
                     new ColumnDefinition{ Width = 70 }
-                }
+                },
+                HorizontalOptions = LayoutOptions.Center
             };
 
             g.Children.Add(new BoxView
@@ -1288,7 +1266,8 @@ namespace GolfScorekeeper
                     new RowDefinition{ },
                     new RowDefinition { Height = new GridLength(2, GridUnitType.Star) },
 
-                }
+                },
+                HorizontalOptions = LayoutOptions.Center
             };
 
             GolfCourse course = courseList.First(c => c.GetCourseName().Equals(courseNameText));
@@ -1456,7 +1435,7 @@ namespace GolfScorekeeper
             AbsoluteLayout.SetLayoutFlags(noConfirmButton, AbsoluteLayoutFlags.PositionProportional);
             noConfirmButton.Clicked += OnNoDeleteButtonClicked;
 
-            Label messageLabel = new Label() { Text = "All round data\nwill be lost.\nAre you sure?" };
+            Label messageLabel = new Label() { Text = "All round data\nwill be lost.\nAre you sure?", HorizontalOptions = LayoutOptions.Center };
             AbsoluteLayout.SetLayoutBounds(messageLabel, new Rectangle(0.5, .3, 225, 120));
             AbsoluteLayout.SetLayoutFlags(messageLabel, AbsoluteLayoutFlags.PositionProportional);
 
@@ -1494,7 +1473,7 @@ namespace GolfScorekeeper
             AbsoluteLayout.SetLayoutFlags(noConfirmButton, AbsoluteLayoutFlags.PositionProportional);
             noConfirmButton.Clicked += OnNoDeleteButtonClicked;
 
-            Label messageLabel = new Label() { Text = "All courses\nwill be deleted.\nAre you sure?" };
+            Label messageLabel = new Label() { Text = "All courses\nwill be deleted.\nAre you sure?", HorizontalOptions = LayoutOptions.Center };
             AbsoluteLayout.SetLayoutBounds(messageLabel, new Rectangle(0.5, .3, 225, 120));
             AbsoluteLayout.SetLayoutFlags(messageLabel, AbsoluteLayoutFlags.PositionProportional);
 
@@ -1578,7 +1557,7 @@ namespace GolfScorekeeper
             AbsoluteLayout.SetLayoutFlags(noConfirmButton, AbsoluteLayoutFlags.PositionProportional);
             noConfirmButton.Clicked += OnNoConfirmButtonClicked;
 
-            Label messageLabel = new Label() { Text = "All current round\ndata will be lost.\nAre you sure?" };
+            Label messageLabel = new Label() { Text = "All current round\ndata will be lost.\nAre you sure?", HorizontalOptions = LayoutOptions.Center };
             AbsoluteLayout.SetLayoutBounds(messageLabel, new Rectangle(0.5, .3, 225, 120));
             AbsoluteLayout.SetLayoutFlags(messageLabel, AbsoluteLayoutFlags.PositionProportional);
 
@@ -1640,7 +1619,8 @@ namespace GolfScorekeeper
                     new RowDefinition{ Height = new GridLength(2, GridUnitType.Star) },
                     new RowDefinition{ Height = new GridLength(2, GridUnitType.Star) },
 
-                }
+                },
+                HorizontalOptions = LayoutOptions.Center
             };
 
             int courseLength = currentRound.GetCourse().GetLength();
@@ -1991,7 +1971,8 @@ namespace GolfScorekeeper
                     new ColumnDefinition{ Width = 70 },
                     new ColumnDefinition{ Width = 70 },
                     new ColumnDefinition{ Width = 70 }
-                }
+                },
+                HorizontalOptions = LayoutOptions.Center
             };
 
             g.Children.Add(new BoxView
@@ -2165,7 +2146,7 @@ namespace GolfScorekeeper
             AbsoluteLayout.SetLayoutFlags(noConfirmButton, AbsoluteLayoutFlags.PositionProportional);
             noConfirmButton.Clicked += OnNoConfirmButtonClicked;
 
-            Label messageLabel = new Label() { Text = "Delete Round?" };
+            Label messageLabel = new Label() { Text = "Delete Round?", HorizontalOptions = LayoutOptions.Center };
             AbsoluteLayout.SetLayoutBounds(messageLabel, new Rectangle(0.5, .3, 225, 120));
             AbsoluteLayout.SetLayoutFlags(messageLabel, AbsoluteLayoutFlags.PositionProportional);
 
@@ -2254,7 +2235,7 @@ namespace GolfScorekeeper
             {
                 //Save the score for the hole the player was on when they left
                 currentRound.SetScore(currentRound.GetCurrentHole(), currentRound.GetStrokes());
-                
+
                 RoundDB gameRecord = new RoundDB(currentRound);
                 dbConnection.InsertOrReplace(gameRecord);
             }

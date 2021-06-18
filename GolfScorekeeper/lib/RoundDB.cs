@@ -8,32 +8,76 @@ namespace GolfScorekeeper.lib
         [PrimaryKey]
         public int Id { get; set; }
         public string CourseName { get; set; }
-        public string Scorecard { get; set; }
+        public int Size { get; set; }
+        public int ScoreOne { get; set; }
+        public int ScoreTwo { get; set; }
+        public int ScoreThree { get; set; }
+        public int ScoreFour { get; set; }
+        public int ScoreFive { get; set; }
+        public int ScoreSix { get; set; }
+        public int ScoreSeven { get; set; }
+        public int ScoreEight { get; set; }
+        public int ScoreNine { get; set; }
+        public int ScoreTen { get; set; }
+        public int ScoreEleven { get; set; }
+        public int ScoreTwelve { get; set; }
+        public int ScoreThirteen { get; set; }
+        public int ScoreFourteen { get; set; }
+        public int ScoreFifteen { get; set; }
+        public int ScoreSixteen { get; set; }
+        public int ScoreSeventeen { get; set; }
+        public int ScoreEighteen { get; set; }
         public int CurrentHole { get; set; }
         public int Strokes { get; set; }
         public RoundDB(){} //Empty constructor is needed for SQLite
         public RoundDB(Round round)
         {
-            Id = 1;
+            Id = 1; //Only allow one record (acts as current game)
+
             CourseName = round.GetCourseName();
 
-            int[] inputScorecard = round.GetScorecard();
-            string scorecard = "";
-            
-            for (int i=0; i < inputScorecard.Length; i++)
+            int[] scorecard = round.GetScorecard();
+
+            ScoreOne = scorecard[0];
+            ScoreTwo = scorecard[1];
+            ScoreThree = scorecard[2];
+            ScoreFour = scorecard[3];
+            ScoreFive = scorecard[4];
+            ScoreSix = scorecard[5];
+            ScoreSeven = scorecard[6];
+            ScoreEight = scorecard[7];
+            ScoreNine = scorecard[8];
+
+            if (scorecard.Length == 18)
             {
-                scorecard += inputScorecard[i].ToString();
+                Size = 18;
+                ScoreTen = scorecard[9];
+                ScoreEleven = scorecard[10];
+                ScoreTwelve = scorecard[11];
+                ScoreThirteen = scorecard[12];
+                ScoreFourteen = scorecard[13];
+                ScoreFifteen = scorecard[14];
+                ScoreSixteen = scorecard[15];
+                ScoreSeventeen = scorecard[16];
+                ScoreEighteen = scorecard[17];
+            }
+            else
+            {
+                Size = 9;
+                ScoreTen = 0;
+                ScoreEleven = 0;
+                ScoreTwelve = 0;
+                ScoreThirteen = 0;
+                ScoreFourteen = 0;
+                ScoreFifteen = 0;
+                ScoreSixteen = 0;
+                ScoreSeventeen = 0;
+                ScoreEighteen = 0;
             }
 
-            Scorecard = scorecard;
             CurrentHole = round.GetCurrentHole();
             Strokes = round.GetStrokes();
         }
-        public string GetCourseName() { return CourseName; }
-        public string GetScorecard() { return Scorecard; }
-        public int GetScore(int hole) { return Convert.ToInt32(Scorecard[hole - 1].ToString()); } //1 is hole 1
-        public int GetCurrentHole() { return CurrentHole; }
-        public int GetStrokes() { return Strokes; }
     }
 }
     
