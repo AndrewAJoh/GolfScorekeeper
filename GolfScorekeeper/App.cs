@@ -55,8 +55,6 @@ namespace GolfScorekeeper
         private StackLayout morePageStackLayout;
         private AbsoluteLayout enterPageLayout;
         private AbsoluteLayout courseDetailLayout;
-        private CircleScrollView morePage;
-        private CircleScrollView historyScrollView;
         private AbsoluteLayout cFFinalPageLayout;
         AbsoluteLayout questionPageLayout;
         private CircleScrollView morePageScrollView;
@@ -73,7 +71,6 @@ namespace GolfScorekeeper
         private int newCourseLength; //Needed for course creation
         private string newCourseName;
         private bool midRound = false;
-        private bool isEnhanced = false;
         private string historyCourse; //The course you have navigated to in the game history
         private string historyRoundID; //The round you have navigated to in the game history
         GolfCourse courseToBeAdded;
@@ -104,56 +101,64 @@ namespace GolfScorekeeper
             dbConnection.CreateTable<ScoreDB>();
 
             //Import old Course data
-            var courseDBReturn = dbConnection.Query<Course>("select * from Course");
-            List<int> courseScorecard = new List<int>();
-
-            foreach (var courseDB in courseDBReturn)
+            try
             {
-                courseScorecard.Clear();
-                for (int i = 0; i < courseDB.ParList.Length; i++)
-                {
-                    courseScorecard.Add(Convert.ToInt32(courseDB.ParList[i].ToString()));
-                }
-
-                int[] courseScorecardIntArray = courseScorecard.ToArray();
-                GolfCourseDB c = new GolfCourseDB();
-                c.Scorecard = courseDB.ParList;
-                c.Name = courseDB.Name;
-                dbConnection.InsertOrReplace(c);
-                dbConnection.DropTable<Course>();
-            }
-            //Import list of courses from the database
-            var courseDBList = dbConnection.Table<GolfCourseDB>();
+                var courseDBReturn = dbConnection.Query<Course>("select * from Course");
             
-            foreach (var courseDB in courseDBList)
-            {
-                courseScorecard.Clear();
-                for (int i = 0; i < courseDB.GetLength(); i++)
+                foreach (var courseDB in courseDBReturn)
                 {
-                    courseScorecard.Add(courseDB.GetHolePar(i+1));
+                    GolfCourseDB c = new GolfCourseDB();
+                    c.Scorecard = courseDB.ParList;
+                    c.Name = courseDB.Name;
+                    dbConnection.InsertOrReplace(c);
+                    dbConnection.DropTable<Course>();
                 }
-
-                int[] courseScorecardIntArray = courseScorecard.ToArray();
-                courseList.Add(new GolfCourse(courseDB.GetCourseName(), courseScorecardIntArray));
+            }
+            catch
+            {
+                Toast.DisplayText("Failed to import old course data.<br><br>Please send an e-mail to support.", 10000);
             }
 
-            var roundDBList = dbConnection.Table<RoundDB>();
-
-            var currentGame = 0;
-            foreach (var item in roundDBList)
+            //Import list of courses from the database
+            try
             {
-                currentGame++;
-            }
-
-            if (currentGame == 1)
-            {
-                midRound = true;
-                foreach (var roundDB in roundDBList)
+                var courseDBList = dbConnection.Table<GolfCourseDB>();
+                List<int> courseScorecard = new List<int>();
+            
+                foreach (var courseDB in courseDBList)
                 {
+                    courseScorecard.Clear();
+                    for (int i = 0; i < courseDB.GetLength(); i++)
+                    {
+                        courseScorecard.Add(courseDB.GetHolePar(i+1));
+                    }
+
+                    int[] courseScorecardIntArray = courseScorecard.ToArray();
+                    courseList.Add(new GolfCourse(courseDB.GetCourseName(), courseScorecardIntArray));
+                }
+            }
+            catch
+            {
+                Toast.DisplayText("Failed to import course data.<br><br>Please send an e-mail to support.", 10000);
+            }
+
+            try
+            {
+                var roundDB = dbConnection.Table<RoundDB>().FirstOrDefault();
+
+                if (roundDB != null)
+                {
+                    midRound = true;
                     GolfCourse currentCourse = courseList.First(c => c.GetCourseName().Equals(roundDB.CourseName));
                     currentRound = new Round(roundDB, currentCourse);
                 }
             }
+            catch
+            {
+                Toast.DisplayText("Failed to import current round data.<br><br>Please send an e-mail to support.", 10000);
+            }
+            
+
             //Home page objects
             scoreTrackerButton = new Button() { Text = "Score Tracker", BackgroundColor = greenColor };
             moreButton = new Button() { Text = "More", BackgroundColor = greenColor };
@@ -619,16 +624,19 @@ namespace GolfScorekeeper
                     try
                     {
                         dbConnection.InsertOrReplace(golfCourse);
+                        if (resultDuplicate == 1)
+                        {
+                            courseList.Remove(courseList.FirstOrDefault(c => c.GetCourseName().Equals(courseToBeAdded.GetCourseName())));
+                        }
                         courseList.Add(courseToBeAdded);
                     }
                     catch
                     {
-                        Toast.DisplayText("Failed to write course to database.<br><br>Check device memory<br>or send an email to support.", 10000);
+                        Toast.DisplayText("Failed to write course to database.<br><br>Check device memory<br>or send an e-mail to support.", 10000);
                     }
                 }
 
-                GenerateCourseList(false, true, false);
-                GenerateCourseList(true, false, false);
+                GenerateCourseList(true, true, false);
                 
                 MainPage.Navigation.RemovePage(ep);
             }
@@ -1248,13 +1256,13 @@ namespace GolfScorekeeper
             {
                 Text = courseNameText,
                 HorizontalOptions = LayoutOptions.Center,
-                FontSize = 8
+                FontSize = 10
             };
 
             Label holeParLabel = new Label()
             {
                 Text = "Hole/Par",
-                FontSize = 6
+                FontSize = 8
             };
 
             Grid g = new Grid
@@ -1285,7 +1293,7 @@ namespace GolfScorekeeper
                     Text = Convert.ToString(i + 1),
                     HorizontalOptions = LayoutOptions.Center,
                     VerticalOptions = LayoutOptions.Center,
-                    FontSize = 5
+                    FontSize = 7
                 }, i % 9, (2 * (i / 9)));
 
                 g.Children.Add(new BoxView
@@ -1298,7 +1306,7 @@ namespace GolfScorekeeper
                     Text = Convert.ToString(course.GetHolePar(i+1)),
                     HorizontalOptions = LayoutOptions.Center,
                     VerticalOptions = LayoutOptions.Center,
-                    FontSize = 5
+                    FontSize = 7
                 }, i % 9, (2 * (i / 9)) + 1);
             }
 
@@ -1319,16 +1327,16 @@ namespace GolfScorekeeper
             AbsoluteLayout.SetLayoutFlags(removeButton, AbsoluteLayoutFlags.PositionProportional);
             if (courseLength == 9)
             {
-                AbsoluteLayout.SetLayoutBounds(g, new Rectangle(0.5, 0.55, 350, 100));
+                AbsoluteLayout.SetLayoutBounds(g, new Rectangle(0.5, 0.55, 350, 120));
                 AbsoluteLayout.SetLayoutFlags(g, AbsoluteLayoutFlags.PositionProportional);
                 AbsoluteLayout.SetLayoutBounds(holeParLabel, new Rectangle(0.1, 0.65, 140, 60));
                 AbsoluteLayout.SetLayoutFlags(holeParLabel, AbsoluteLayoutFlags.PositionProportional);
             }
             else
             {
-                AbsoluteLayout.SetLayoutBounds(g, new Rectangle(0.5, 0.5, 350, 100));
+                AbsoluteLayout.SetLayoutBounds(g, new Rectangle(0.5, 0.5, 350, 120));
                 AbsoluteLayout.SetLayoutFlags(g, AbsoluteLayoutFlags.PositionProportional);
-                AbsoluteLayout.SetLayoutBounds(holeParLabel, new Rectangle(0.1, 0.8, 140, 60));
+                AbsoluteLayout.SetLayoutBounds(holeParLabel, new Rectangle(0.15, 0.8, 140, 60));
                 AbsoluteLayout.SetLayoutFlags(holeParLabel, AbsoluteLayoutFlags.PositionProportional);
             }
 
@@ -1341,7 +1349,7 @@ namespace GolfScorekeeper
 
         protected async void DisplayRemoveCourseScreen(object sender, System.EventArgs e)
         {
-            areYouSureLabel.Text = "Delete all info for " + courseNameText + "?";   //TODO: Consider not using courseNameText as a global, is there a workaround?
+            areYouSureLabel.Text = "Delete all info for " + courseNameText + "?";
             if ((midRound == true) && (courseNameText.Equals(currentRound.GetCourseName())))
             {
                 areYouReallySureLabel.Text = "You will lose all data for your current round";
@@ -2213,7 +2221,7 @@ namespace GolfScorekeeper
             }
             else
             {
-                if (currentRound.GetCourseName().Equals(course.GetCourseName()) && (midRound))
+                if (currentRound.GetCourseName().Equals(course.GetCourseName()))
                 {
                     return 1;
                 }
