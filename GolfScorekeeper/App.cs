@@ -28,8 +28,6 @@ namespace GolfScorekeeper
         private Label redTeeBoxMarker2;
         private Label whiteTeeBoxMarker1;
         private Label whiteTeeBoxMarker2;
-        private Label areYouSureLabel;
-        private Label areYouReallySureLabel;
         private Label customCoursePrompt;
         private Entry customCourseEntry;
         private Button customCourseNextButton;
@@ -158,7 +156,6 @@ namespace GolfScorekeeper
                 Toast.DisplayText("Failed to import current round data.<br><br>Please send an e-mail to support.", 10000);
             }
             
-
             //Home page objects
             scoreTrackerButton = new Button() { Text = "Score Tracker", BackgroundColor = greenColor };
             moreButton = new Button() { Text = "More", BackgroundColor = greenColor };
@@ -182,12 +179,7 @@ namespace GolfScorekeeper
             Button subtractStrokeButton = new Button() { Text = "-1", BackgroundColor = greenColor };
             nextHoleButton = new Button() { FontSize = Device.GetNamedSize(NamedSize.Small, typeof(Label)), BackgroundColor = sandColor, TextColor = Color.Black };
             Button previousHoleButton = new Button() { Text = "Prev\nHole", FontSize = Device.GetNamedSize(NamedSize.Small, typeof(Label)), BackgroundColor = sandColor, TextColor = Color.Black };
-
-            areYouSureLabel = new Label() { };
-            areYouReallySureLabel = new Label() { FontSize = 8 };
-            Button yesButton = new Button() { Text = "Yes"};
-            Button noButton = new Button() { Text = "No"};
-
+            
             Label finishRoundText = new Label(){ Text = "Finish Round?", HorizontalOptions = LayoutOptions.Center };
             Button finishRoundYesButton = new Button() { Text = "Yes" };
             finishRoundYesButton.Clicked += FinishRound;
@@ -197,7 +189,6 @@ namespace GolfScorekeeper
             AbsoluteLayout.SetLayoutBounds(finishRoundText, new Rectangle(0.5, .25, 250, 80));
             AbsoluteLayout.SetLayoutFlags(finishRoundText, AbsoluteLayoutFlags.PositionProportional);
 
-
             addStrokeButton.Clicked += OnAddStrokeButtonClicked;
             strokeButton.Clicked += OnStrokeButtonClicked;
             subtractStrokeButton.Clicked += OnSubtractStrokeButtonClicked;
@@ -206,38 +197,12 @@ namespace GolfScorekeeper
             waterAstheticButton1.Clicked += OnWaterAstheticButtonClicked;
             waterAstheticButton2.Clicked += OnWaterAstheticButtonClicked;
             roundInfoButton.Clicked += OnRoundInfoButtonClicked;
-            
-            AbsoluteLayout deleteCourseLayout = new AbsoluteLayout
-            {
-                Children =
-                {
-                    areYouSureLabel,
-                    yesButton,
-                    noButton,
-                    areYouReallySureLabel
-                }
-            };
-
-            AbsoluteLayout.SetLayoutBounds(areYouSureLabel, new Rectangle(0.5, .25, 250, 80));
-            AbsoluteLayout.SetLayoutFlags(areYouSureLabel, AbsoluteLayoutFlags.PositionProportional);
-
-            AbsoluteLayout.SetLayoutBounds(areYouReallySureLabel, new Rectangle(0.5, .50, 250, 80));
-            AbsoluteLayout.SetLayoutFlags(areYouReallySureLabel, AbsoluteLayoutFlags.PositionProportional);
-
-            AbsoluteLayout.SetLayoutBounds(yesButton, new Rectangle(0.2, .7, 100, 60));
-            AbsoluteLayout.SetLayoutFlags(yesButton, AbsoluteLayoutFlags.PositionProportional);
-
-            AbsoluteLayout.SetLayoutBounds(noButton, new Rectangle(0.8, .7, 100, 60));
-            AbsoluteLayout.SetLayoutFlags(noButton, AbsoluteLayoutFlags.PositionProportional);
 
             AbsoluteLayout.SetLayoutBounds(finishRoundYesButton, new Rectangle(0.2, .7, 100, 60));
             AbsoluteLayout.SetLayoutFlags(finishRoundYesButton, AbsoluteLayoutFlags.PositionProportional);
 
             AbsoluteLayout.SetLayoutBounds(finishRoundNoButton, new Rectangle(0.8, .7, 100, 60));
             AbsoluteLayout.SetLayoutFlags(finishRoundNoButton, AbsoluteLayoutFlags.PositionProportional);
-
-            yesButton.Clicked += OnYesDeleteButtonClicked;
-            noButton.Clicked += OnNoDeleteButtonClicked;
 
             questionPageLayout = new AbsoluteLayout { };
 
@@ -330,8 +295,6 @@ namespace GolfScorekeeper
                 Content = questionPageLayout
             };
 
-            
-
             AbsoluteLayout parTrackerLayout = new AbsoluteLayout()
             {
                 Children =
@@ -346,26 +309,22 @@ namespace GolfScorekeeper
                 }
             };
 
-            //MainPage
             mp = new CirclePage() {
                 Content = homePageLayout,
                 BackgroundColor = darkGreenColor
             };
 
-            //SubPage
             sp = new CirclePage()
             {
                 BackgroundColor = darkGreenColor
             };
 
-            //SubSubPage
             ssp = new CirclePage()
             {
                 Content = parTrackerLayout,
                 BackgroundColor = darkGreenColor
             };
 
-            //QuestionPage
             qp = new CirclePage()
             {
                 Content = questionLayout,
@@ -377,7 +336,6 @@ namespace GolfScorekeeper
                 BackgroundColor = darkGreenColor
             };
 
-            //EnterPage
             ep = new CirclePage()
             {
                 BackgroundColor = darkGreenColor
@@ -388,7 +346,6 @@ namespace GolfScorekeeper
                 BackgroundColor = darkGreenColor
             };
 
-            //CourseListPage
             clp = new CirclePage()
             {
                 BackgroundColor = darkGreenColor
@@ -404,22 +361,18 @@ namespace GolfScorekeeper
                 BackgroundColor = darkGreenColor
             };
 
-            //CourseDetailPage
             cdp = new CirclePage()
             {
                 BackgroundColor = darkGreenColor
             };
 
-            //ScoreDetailPage
             scp = new CirclePage()
             {
                 BackgroundColor = darkGreenColor
             };
 
-            //DeletePage
             dp = new CirclePage()
             {
-                Content = deleteCourseLayout,
                 BackgroundColor = darkGreenColor
             };
 
@@ -428,7 +381,6 @@ namespace GolfScorekeeper
                 BackgroundColor = darkGreenColor
             };
 
-            //Checkfor Final Page
             cFFinalPageLayout = new AbsoluteLayout
             {
                 Children =
@@ -445,7 +397,6 @@ namespace GolfScorekeeper
                 BackgroundColor = darkGreenColor
             };
 
-            //FinalPage (results screen)
             fp = new CirclePage()
             {
                 BackgroundColor = darkGreenColor
@@ -584,7 +535,7 @@ namespace GolfScorekeeper
                 int resultDuplicate = CheckCourseDuplicate(courseToBeAdded);
                 int resultCurrentCourse = CheckCurrentCourse(courseToBeAdded);
 
-                if (resultDuplicate == 1 && resultCurrentCourse == 1)
+                if (resultDuplicate == 1)
                 {
                     Button yes = new Button
                     {
@@ -596,18 +547,27 @@ namespace GolfScorekeeper
                     };
                     Label prompt = new Label
                     {
-                        Text = "Current round will be\nreset if course is overwritten.\nContinue?",
                         HorizontalOptions = LayoutOptions.Center
                     };
+
+                    if (resultCurrentCourse == 1)
+                    {
+                        prompt.Text = "All previous round data will be lost, and your current game will reset.\nContinue?";
+                        yes.Clicked += OnYesOverwriteCourseClickedCurrentGame;
+                    }
+                    else
+                    {
+                        prompt.Text = "All previous round data will be lost.\nContinue?";
+                        yes.Clicked += OnYesOverwriteCourseClickedNotCurrentGame;
+                    }
 
                     AbsoluteLayout.SetLayoutBounds(yes, new Rectangle(0.2, .7, 100, 60));
                     AbsoluteLayout.SetLayoutFlags(yes, AbsoluteLayoutFlags.PositionProportional);
                     AbsoluteLayout.SetLayoutBounds(no, new Rectangle(0.8, .7, 100, 60));
                     AbsoluteLayout.SetLayoutFlags(no, AbsoluteLayoutFlags.PositionProportional);
-                    AbsoluteLayout.SetLayoutBounds(prompt, new Rectangle(0.5, .25, 250, 80));
+                    AbsoluteLayout.SetLayoutBounds(prompt, new Rectangle(0.5, .25, 250, 150));
                     AbsoluteLayout.SetLayoutFlags(prompt, AbsoluteLayoutFlags.PositionProportional);
-
-                    yes.Clicked += OnYesOverwriteCourseClicked;
+                    
                     no.Clicked += OnNoOverwriteCourseClicked;
 
                     questionPageLayout.Children.Clear();
@@ -745,7 +705,14 @@ namespace GolfScorekeeper
             //Keep values
             int currentHole = currentRound.GetCurrentHole();
             roundInfoButton.Text = "H" + Convert.ToString(currentHole) + " P" + Convert.ToString(currentRound.GetCourse().GetHolePar(currentHole));
-            nextHoleButton.Text = "Next\nHole";
+            if (currentHole == currentRound.GetCourse().GetLength())
+            {
+                nextHoleButton.Text = "Done";
+            }
+            else
+            {
+                nextHoleButton.Text = "Next\nHole";
+            }
 
             int currentCourseScoreRelativeToPar = currentRound.GetCurrentCourseScoreRelativeToPar();
             if (currentCourseScoreRelativeToPar > 0)
@@ -770,7 +737,7 @@ namespace GolfScorekeeper
             midRound = false;
 
             //Reset CurrentGame table
-            var currentGameQueryResult = dbConnection.Query<RoundDB>("select * from RoundDB").FirstOrDefault(); //TODO: will need to find a way so that old users course info is not overwritten (table name change)
+            var currentGameQueryResult = dbConnection.Query<RoundDB>("select * from RoundDB").FirstOrDefault();
             if (currentGameQueryResult != null)
             {
                 dbConnection.RunInTransaction(() =>
@@ -801,7 +768,7 @@ namespace GolfScorekeeper
             {
                 return;
             }
-            currentRound.SetStrokes(currentRound.GetStrokes() - 1); //TODO: If this is too slow you can change the logic a bit to make it faster
+            currentRound.SetStrokes(currentRound.GetStrokes() - 1); //TODO: Put strokes in a variable
             strokeButton.Text = Convert.ToString(currentRound.GetStrokes());
         }
 
@@ -844,7 +811,6 @@ namespace GolfScorekeeper
 
         protected void GenerateCourseList(bool courseSelectPage, bool courseLookupPage, bool roundHistoryPage)
         {
-
             CircleScrollView resultView;
             if (courseLookupPage)
             {
@@ -861,7 +827,6 @@ namespace GolfScorekeeper
                 resultView = GenerateList(false, false, true);
                 hp.Content = resultView;
             }
-
         }
 
         protected CircleScrollView GenerateList(bool courseSelectPage, bool courseLookupPage, bool roundHistoryPage)    //TODO: Rewrite this, try to get rid of the parameter
@@ -1346,18 +1311,49 @@ namespace GolfScorekeeper
             await MainPage.Navigation.PushAsync(cdp);
         }
         
-
         protected async void DisplayRemoveCourseScreen(object sender, System.EventArgs e)
         {
-            areYouSureLabel.Text = "Delete all info for " + courseNameText + "?";
+            Label areYouSureLabel = new Label() { HorizontalOptions = LayoutOptions.Center };
+            AbsoluteLayout.SetLayoutBounds(areYouSureLabel, new Rectangle(0.5, .15, 250, 75));
+            AbsoluteLayout.SetLayoutFlags(areYouSureLabel, AbsoluteLayoutFlags.PositionProportional);
+            areYouSureLabel.Text = "Delete all info for\n" + courseNameText + "?";
+
+            Label areYouReallySureLabel = new Label() { FontSize = 8, HorizontalOptions = LayoutOptions.Center };
+            AbsoluteLayout.SetLayoutBounds(areYouReallySureLabel, new Rectangle(0.5, .45, 250, 75));
+            AbsoluteLayout.SetLayoutFlags(areYouReallySureLabel, AbsoluteLayoutFlags.PositionProportional);
+
             if ((midRound == true) && (courseNameText.Equals(currentRound.GetCourseName())))
             {
-                areYouReallySureLabel.Text = "You will lose all data for your current round";
+                areYouReallySureLabel.Text = "You will lose all data for your current round.";
             }
             else
             {
                 areYouReallySureLabel.Text = "";
             }
+
+            Button yesButton = new Button() { Text = "Yes" };
+            AbsoluteLayout.SetLayoutBounds(yesButton, new Rectangle(0.2, .75, 100, 60));
+            AbsoluteLayout.SetLayoutFlags(yesButton, AbsoluteLayoutFlags.PositionProportional);
+            yesButton.Clicked += OnYesDeleteButtonClicked;
+
+            Button noButton = new Button() { Text = "No" };
+            AbsoluteLayout.SetLayoutBounds(noButton, new Rectangle(0.8, .75, 100, 60));
+            AbsoluteLayout.SetLayoutFlags(noButton, AbsoluteLayoutFlags.PositionProportional);
+            noButton.Clicked += OnNoDeleteButtonClicked;
+
+            AbsoluteLayout deleteCourseLayout = new AbsoluteLayout
+            {
+                Children =
+                {
+                    areYouSureLabel,
+                    yesButton,
+                    noButton,
+                    areYouReallySureLabel
+                }
+            };
+
+            dp.Content = deleteCourseLayout;
+
             await MainPage.Navigation.PushAsync(dp);
         }
         protected void RemoveCourse(string courseName)
@@ -1392,12 +1388,27 @@ namespace GolfScorekeeper
                 });
             }
 
+            //Delete all round records from database
+            try
+            {
+                var scoreQueryResult = dbConnection.Execute("delete from ScoreDB where CourseName = '" + courseName + "';");
+            }
+            catch
+            {
+                Toast.DisplayText("Failed to delete existing rounds.<br><br>Please send an e-mail to support", 5000);
+            }
+
             MainPage.Navigation.RemovePage(cdp);
         }
 
         protected void OnRoundHistoryButtonClicked(object sender, System.EventArgs e)
         {
             GenerateCourseList(false, false, true);
+            if (courseList.Count == 0)
+            {
+                Toast.DisplayText("You have not added<br>any courses.");
+                return;
+            }
             MainPage.Navigation.PushAsync(hp);
         }
 
@@ -1481,8 +1492,8 @@ namespace GolfScorekeeper
             AbsoluteLayout.SetLayoutFlags(noConfirmButton, AbsoluteLayoutFlags.PositionProportional);
             noConfirmButton.Clicked += OnNoDeleteButtonClicked;
 
-            Label messageLabel = new Label() { Text = "All courses\nwill be deleted.\nAre you sure?", HorizontalOptions = LayoutOptions.Center };
-            AbsoluteLayout.SetLayoutBounds(messageLabel, new Rectangle(0.5, .3, 225, 120));
+            Label messageLabel = new Label() { Text = "All previous rounds\nwill also be deleted.\nAre you sure?", HorizontalOptions = LayoutOptions.Center };
+            AbsoluteLayout.SetLayoutBounds(messageLabel, new Rectangle(0.5, .3, 275, 120));
             AbsoluteLayout.SetLayoutFlags(messageLabel, AbsoluteLayoutFlags.PositionProportional);
 
             AbsoluteLayout deleteDataLayout = new AbsoluteLayout
@@ -1502,7 +1513,14 @@ namespace GolfScorekeeper
         protected void OnYesConfirmDeleteCoursesButtonClicked(object sender, System.EventArgs e)
         {
             dbConnection.DropTable<GolfCourseDB>();
+            courseList.Clear();
             dbConnection.CreateTable<GolfCourseDB>();
+            //delete all rounds as well
+            dbConnection.DropTable<ScoreDB>();
+            dbConnection.CreateTable<ScoreDB>();
+            dbConnection.DropTable<RoundDB>();
+            dbConnection.CreateTable<RoundDB>();
+            midRound = false;
             MainPage.Navigation.PopAsync();
         }
 
@@ -1523,11 +1541,44 @@ namespace GolfScorekeeper
         }
         protected void OnNoFinishRoundButtonClicked(object sender, System.EventArgs e)
         {
-            MainPage.Navigation.RemovePage(ep);
             MainPage.Navigation.PopAsync();
         }
-        protected void OnYesOverwriteCourseClicked(object sender, System.EventArgs e)
+        protected void OnYesOverwriteCourseClickedNotCurrentGame(object sender, System.EventArgs e)
         {
+            //Replace course from database via name
+            try
+            {
+                GolfCourseDB golfCourse = new GolfCourseDB(courseToBeAdded);
+                dbConnection.InsertOrReplace(golfCourse);
+            }
+            catch
+            {
+                Toast.DisplayText("Failed to write course to database.<br><br>Check device memory<br>or send an e-mail to support.", 10000);
+                return;
+            }
+
+            midRound = false;
+
+            //Replace course in courseList
+            courseList.Remove(courseList.FirstOrDefault(c => c.GetCourseName().Equals(courseToBeAdded.GetCourseName())));
+            courseList.Add(courseToBeAdded);
+
+            //Remove any records of the course from round history
+            try
+            {
+                var scoreQueryResult = dbConnection.Execute("delete from ScoreDB where CourseName = '" + courseToBeAdded.GetCourseName() + "';");
+            }
+            catch
+            {
+                Toast.DisplayText("Failed to delete existing rounds.<br><br>Please send an e-mail to support", 5000);
+            }
+
+            MainPage.Navigation.PopAsync();
+            Toast.DisplayText("Course information for <br>" + newCourseName + "<br>has been overwritten.");
+        }
+        protected void OnYesOverwriteCourseClickedCurrentGame(object sender, System.EventArgs e)
+        {
+            //Replace course from database via name
             try
             {
                 GolfCourseDB golfCourse = new GolfCourseDB(courseToBeAdded);
@@ -1541,9 +1592,30 @@ namespace GolfScorekeeper
 
             midRound = false;
 
+            //Replace course in courseList
             courseList.Remove(courseList.FirstOrDefault(c => c.GetCourseName().Equals(courseToBeAdded.GetCourseName())));
             courseList.Add(courseToBeAdded);
-            
+
+            //Remove any records of the course from round history
+            try
+            {
+                var scoreQueryResult = dbConnection.Execute("delete from ScoreDB where CourseName = '" + courseToBeAdded.GetCourseName() + "';");
+            }
+            catch
+            {
+                Toast.DisplayText("Failed to delete existing rounds.<br><br>Please send an e-mail to support", 5000);
+            }
+
+            //Finally, remove the current game since it's using the course
+            var currentGameQueryResult = dbConnection.Query<RoundDB>("select * from RoundDB").FirstOrDefault();
+            if (currentGameQueryResult != null)
+            {
+                dbConnection.RunInTransaction(() =>
+                {
+                    dbConnection.Delete(currentGameQueryResult);
+                });
+            }
+
             MainPage.Navigation.PopAsync();
             Toast.DisplayText("Course information for <br>" + newCourseName + "<br>has been overwritten.");
         }
