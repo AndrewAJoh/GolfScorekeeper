@@ -470,7 +470,7 @@ namespace GolfScorekeeper
                 customCourseEntry.Keyboard = Keyboard.Numeric;
                 customCourseEntry.MaxLength = 9;
 
-                customCoursePrompt.Text = "Enter front 9 pars in order (Example: 443545344)";
+                customCoursePrompt.Text = "Enter front 9 pars in order (example: 443545344)";
 
                 if (newCourseLength == 9)
                 {
@@ -1301,7 +1301,7 @@ namespace GolfScorekeeper
             {
                 AbsoluteLayout.SetLayoutBounds(g, new Rectangle(0.5, 0.5, 350, 120));
                 AbsoluteLayout.SetLayoutFlags(g, AbsoluteLayoutFlags.PositionProportional);
-                AbsoluteLayout.SetLayoutBounds(holeParLabel, new Rectangle(0.15, 0.8, 140, 60));
+                AbsoluteLayout.SetLayoutBounds(holeParLabel, new Rectangle(0.15, 0.75, 100, 40));
                 AbsoluteLayout.SetLayoutFlags(holeParLabel, AbsoluteLayoutFlags.PositionProportional);
             }
 
